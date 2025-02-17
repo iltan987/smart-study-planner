@@ -16,6 +16,9 @@ const eslintConfig = [
       'next/typescript',
       'plugin:prettier/recommended',
     ],
+    rules: {
+      '@typescript-eslint/consistent-type-imports': 'warn',
+    },
   }),
 ];
 
