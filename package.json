@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "migrate:dev": "dotenv -e .env.local -- prisma migrate dev"
+    "prisma:migrate:dev": "dotenv -e .env.local -- prisma migrate dev",
+    "prisma:migrate:reset": "dotenv -e .env.local -- prisma migrate reset",
+    "prisma:db:push": "dotenv -e .env.local -- prisma db push",
+    "prisma:generate": "dotenv -e .env.local -- prisma generate",
+    "prisma:studio": "dotenv -e .env.local -- prisma studio"
   },
   "dependencies": {
     "@prisma/client": "^6.3.1",
