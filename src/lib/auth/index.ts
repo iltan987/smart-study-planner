@@ -1,6 +1,6 @@
 import NextAuth from 'next-auth';
-import { Credentials, Google, GitHub } from './providers';
+import config from './config';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  providers: [Credentials, Google, GitHub],
+  ...config,
 });
