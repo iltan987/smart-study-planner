@@ -12,7 +12,7 @@ export const getUniversities = async () => {
 
   const filePath = path.join(
     process.cwd(),
-    '/data/world_universities_and_domains_name.json'
+    'public/data/world_universities_and_domains_name.json'
   );
 
   const data = await fs.readFile(filePath, 'utf8');
