@@ -18,8 +18,16 @@ import {
   registerSchema,
 } from '@/schemas/auth/register.schema';
 import { useTransition } from 'react';
+import { register } from '@/actions/auth/register.action';
+import { FormResult } from '@/components/auth/form-result';
+import { useState } from 'react';
+
 export function RegisterForm() {
   const [isPending, startTransition] = useTransition();
+  const [formResult, setFormResult] = useState<{
+    message: string;
+    type: 'success' | 'error';
+  } | null>(null);
 
   const form = useForm({
     resolver: zodResolver(registerSchema),
@@ -33,7 +41,32 @@ export function RegisterForm() {
 
   const onSubmit = (values: RegisterSchema) => {
     startTransition(() => {
-      console.log(values);
+      setFormResult(null);
+      register(values).then((res) => {
+        if (res.success) {
+          setFormResult({
+            message: res.message,
+            type: 'success',
+          });
+        } else {
+          if (typeof res.error === 'string') {
+            setFormResult({
+              message: res.error,
+              type: 'error',
+            });
+          } else {
+            setFormResult({
+              message: res.error.formErrors[0],
+              type: 'error',
+            });
+            for (const [key, value] of Object.entries(res.error.fieldErrors)) {
+              form.setError(key as keyof RegisterSchema, {
+                message: value[0],
+              });
+            }
+          }
+        }
+      });
     });
   };
 
@@ -112,6 +145,10 @@ export function RegisterForm() {
         <Button type="submit" disabled={isPending}>
           {isPending ? 'Registering...' : 'Register'}
         </Button>
+
+        {formResult && (
+          <FormResult message={formResult.message} type={formResult.type} />
+        )}
       </form>
     </Form>
   );
