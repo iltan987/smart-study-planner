@@ -1,8 +1,5 @@
 'use server';
 
-import { promises as fs } from 'fs';
-import path from 'path';
-
 let cachedData: string[] | null = null;
 
 export const getUniversities = async () => {
@@ -10,15 +7,10 @@ export const getUniversities = async () => {
     return cachedData;
   }
 
-  const filePath = path.join(
-    process.cwd(),
-    '/data/world_universities_and_domains_name.json'
-  );
-
-  const data = await fs.readFile(filePath, 'utf8');
-
   try {
-    cachedData = JSON.parse(data);
+    cachedData = await import(
+      '@/data/world_universities_and_domains_name.json'
+    );
     return cachedData;
   } catch (parseError) {
     console.error('Error parsing JSON:', parseError);
