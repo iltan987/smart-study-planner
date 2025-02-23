@@ -2,7 +2,7 @@
 
 let cachedData: string[] | null = null;
 
-export const getUniversities = async () => {
+export const getUniversities = async (): Promise<string[] | null> => {
   if (cachedData) {
     return cachedData;
   }
