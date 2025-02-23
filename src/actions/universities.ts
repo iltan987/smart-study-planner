@@ -6,15 +6,15 @@ export const getUniversities = async () => {
   if (cachedData) {
     return cachedData;
   }
-
   try {
-    cachedData = await import(
+    const data = await import(
       '@/data/world_universities_and_domains_name.json'
     );
+    cachedData = Object.values(data.default) as string[];
     return cachedData;
   } catch (parseError) {
     console.error('Error parsing JSON:', parseError);
-    return { error: 'Internal Server Error' };
+    return null;
   }
 };
 
@@ -23,10 +23,10 @@ export const getUniversitiesWithPagination = async (
   limit: number
 ) => {
   const universities = await getUniversities();
-  if (universities && 'error' in universities) {
-    return universities;
+  if (!universities) {
+    return [];
   }
   const startIndex = (page - 1) * limit;
   const endIndex = startIndex + limit;
-  return universities?.slice(startIndex, endIndex) || [];
+  return universities.slice(startIndex, endIndex);
 };
