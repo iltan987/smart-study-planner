@@ -18,15 +18,15 @@ export const getUniversities = async () => {
   }
 };
 
-export const getUniversitiesWithPagination = async (
-  page: number,
-  limit: number
-) => {
-  const universities = await getUniversities();
-  if (!universities) {
-    return [];
-  }
-  const startIndex = (page - 1) * limit;
-  const endIndex = startIndex + limit;
-  return universities.slice(startIndex, endIndex);
-};
+// export const getUniversitiesWithPagination = async (
+//   page: number,
+//   limit: number
+// ) => {
+//   const universities = await getUniversities();
+//   if (!universities) {
+//     return [];
+//   }
+//   const startIndex = (page - 1) * limit;
+//   const endIndex = startIndex + limit;
+//   return universities.slice(startIndex, endIndex);
+// };
