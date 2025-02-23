@@ -17,16 +17,3 @@ export const getUniversities = async (): Promise<string[] | null> => {
     return null;
   }
 };
-
-// export const getUniversitiesWithPagination = async (
-//   page: number,
-//   limit: number
-// ) => {
-//   const universities = await getUniversities();
-//   if (!universities) {
-//     return [];
-//   }
-//   const startIndex = (page - 1) * limit;
-//   const endIndex = startIndex + limit;
-//   return universities.slice(startIndex, endIndex);
-// };
