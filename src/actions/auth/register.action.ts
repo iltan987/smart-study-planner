@@ -46,6 +46,7 @@ export const register: RegisterFunction = async (credentials) => {
     return {
       success: true,
       message: 'User registered successfully',
+      redirect: '/login',
     };
   } catch {
     return {
