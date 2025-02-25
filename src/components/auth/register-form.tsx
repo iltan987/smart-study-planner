@@ -21,9 +21,15 @@ import { useTransition } from 'react';
 import { register } from '@/actions/auth/register.action';
 import { FormResult } from '@/components/auth/form-result';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export function RegisterForm() {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isCompleted, setIsCompleted] = useState(false);
+
+  const isDisabled = isPending || isCompleted;
+
   const [formResult, setFormResult] = useState<{
     message: string;
     type: 'success' | 'error';
@@ -44,10 +50,16 @@ export function RegisterForm() {
       setFormResult(null);
       register(values).then((res) => {
         if (res.success) {
+          setIsCompleted(true);
           setFormResult({
             message: res.message,
             type: 'success',
           });
+          setTimeout(() => {
+            if (res.redirect) {
+              router.push(res.redirect);
+            }
+          }, 3000);
         } else {
           if (typeof res.error === 'string') {
             setFormResult({
@@ -76,12 +88,15 @@ export function RegisterForm() {
         <FormField
           control={form.control}
           name="name"
-          disabled={isPending}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Name</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your name" {...field} />
+                <Input
+                  disabled={isDisabled}
+                  placeholder="Enter your name"
+                  {...field}
+                />
               </FormControl>
               <FormDescription>Your name.</FormDescription>
               <FormMessage />
@@ -91,12 +106,16 @@ export function RegisterForm() {
         <FormField
           control={form.control}
           name="email"
-          disabled={isPending}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="Enter your email" {...field} />
+                <Input
+                  disabled={isDisabled}
+                  type="email"
+                  placeholder="Enter your email"
+                  {...field}
+                />
               </FormControl>
               <FormDescription>Your email address.</FormDescription>
               <FormMessage />
@@ -106,12 +125,12 @@ export function RegisterForm() {
         <FormField
           control={form.control}
           name="password"
-          disabled={isPending}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
                 <Input
+                  disabled={isDisabled}
                   type="password"
                   placeholder="Enter your password"
                   {...field}
@@ -125,12 +144,12 @@ export function RegisterForm() {
         <FormField
           control={form.control}
           name="confirmPassword"
-          disabled={isPending}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Confirm Password</FormLabel>
               <FormControl>
                 <Input
+                  disabled={isDisabled}
                   type="password"
                   placeholder="Confirm your password"
                   {...field}
@@ -142,13 +161,14 @@ export function RegisterForm() {
           )}
         />
 
-        <Button type="submit" disabled={isPending}>
+        <Button type="submit" disabled={isDisabled}>
           {isPending ? 'Registering...' : 'Register'}
         </Button>
 
         {formResult && (
           <FormResult message={formResult.message} type={formResult.type} />
         )}
+        {isCompleted && <FormResult message="Redirecting..." type="success" />}
       </form>
     </Form>
   );

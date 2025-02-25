@@ -11,6 +11,7 @@ export type ErrorResponse<T extends TypeOf<ZodTypeAny>> = {
 export type SuccessResponse = {
   success: true;
   message: string;
+  redirect?: string;
 };
 
 export type Response<T extends TypeOf<ZodTypeAny>> =
