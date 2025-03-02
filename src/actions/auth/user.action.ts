@@ -3,7 +3,7 @@
 import { getSession } from './session.action';
 import type { User } from '@prisma/client';
 import type { Response } from '@/types/response';
-import { RESPONSE_MESSAGES } from '@/utils/response_messages';
+import { RESPONSE_MESSAGES } from '@/constants';
 import { getUserById, updateUserById } from '@/utils/user.util';
 
 type getUserFunction = () => Promise<Response<unknown, Omit<User, 'password'>>>;

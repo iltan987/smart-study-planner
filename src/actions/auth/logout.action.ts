@@ -1,9 +1,8 @@
 'use server';
 
-import { AUTH_COOKIE_NAME } from '@/utils/cookie.util';
+import { AUTH_COOKIE_NAME, RESPONSE_MESSAGES } from '@/constants';
 import type { Response } from '@/types/response';
 import { cookies } from 'next/headers';
-import { RESPONSE_MESSAGES } from '@/utils/response_messages';
 
 type LogoutFunction = () => Promise<Response<void>>;
 

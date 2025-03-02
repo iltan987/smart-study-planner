@@ -1,14 +1,13 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { AUTH_COOKIE_NAME } from '@/utils/cookie.util';
+import { AUTH_COOKIE_NAME, RESPONSE_MESSAGES } from '@/constants';
 import { verifyToken } from '@/lib/jwt';
 import {
   type SessionSchema,
   sessionSchema,
 } from '@/schemas/auth/session.schema';
 import type { Response } from '@/types/response';
-import { RESPONSE_MESSAGES } from '@/utils/response_messages';
 
 type getSessionFunction = () => Promise<Response<SessionSchema, SessionSchema>>;
 

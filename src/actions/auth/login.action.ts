@@ -2,12 +2,15 @@
 
 import { comparePassword } from '@/utils/crypto.util';
 import { generateToken } from '@/lib/jwt';
-import { AUTH_COOKIE_NAME, AUTH_COOKIE_OPTIONS } from '@/utils/cookie.util';
+import {
+  AUTH_COOKIE_NAME,
+  AUTH_COOKIE_OPTIONS,
+  RESPONSE_MESSAGES,
+} from '@/constants';
 import type { Response } from '@/types/response';
 import { loginSchema, type LoginSchema } from '@/schemas/auth/login.schema';
 import { cookies } from 'next/headers';
 import { sessionSchema } from '@/schemas/auth/session.schema';
-import { RESPONSE_MESSAGES } from '@/utils/response_messages';
 import { getUserByEmail } from '@/utils/user.util';
 
 type LoginFunction = (

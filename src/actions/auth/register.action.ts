@@ -1,7 +1,11 @@
 'use server';
 
 import { hashPassword } from '@/utils/crypto.util';
-import { AUTH_COOKIE_NAME, AUTH_COOKIE_OPTIONS } from '@/utils/cookie.util';
+import {
+  AUTH_COOKIE_NAME,
+  AUTH_COOKIE_OPTIONS,
+  RESPONSE_MESSAGES,
+} from '@/constants';
 import { generateToken } from '@/lib/jwt';
 import type { Response } from '@/types/response';
 import {
@@ -10,7 +14,6 @@ import {
 } from '@/schemas/auth/register.schema';
 import { cookies } from 'next/headers';
 import { sessionSchema } from '@/schemas/auth/session.schema';
-import { RESPONSE_MESSAGES } from '@/utils/response_messages';
 import { getUserByEmail, createUser } from '@/utils/user.util';
 
 type RegisterFunction = (

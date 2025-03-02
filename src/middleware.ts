@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/jwt';
-import { AUTH_COOKIE_NAME } from '@/utils/cookie.util';
+import { AUTH_COOKIE_NAME } from '@/constants';
 
 const AUTH_ROUTES = ['/login', '/register'];
 const DEFAULT_REDIRECT = '/';
