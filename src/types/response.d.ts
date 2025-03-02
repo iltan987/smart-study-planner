@@ -8,12 +8,15 @@ export type ErrorResponse<T extends TypeOf<ZodTypeAny>> = {
   error: string | ValidationError<T>;
 };
 
-export type SuccessResponse = {
-  success: true;
-  message: string;
-  redirect?: string;
+type SuccessWithData<T> = {
+  data: T;
 };
 
-export type Response<T extends TypeOf<ZodTypeAny>> =
+export type SuccessResponse<T> = {
+  success: true;
+  message: string;
+} & (T extends undefined ? object : SuccessWithData<T>);
+
+export type Response<T extends TypeOf<ZodTypeAny>, U = undefined> =
   | ErrorResponse<T>
-  | SuccessResponse;
+  | SuccessResponse<U>;
