@@ -17,7 +17,7 @@ import {
 import { useState, useTransition } from 'react';
 import { FormResult } from './form-result';
 
-const LoginForm = ({ callbackUrl }: { callbackUrl: string }) => {
+const LoginForm = () => {
   const [isPending, startTransition] = useTransition();
   const [formResult, setFormResult] = useState<{
     message: string;
@@ -34,7 +34,7 @@ const LoginForm = ({ callbackUrl }: { callbackUrl: string }) => {
   const onSubmit = (data: LoginSchema) => {
     startTransition(() => {
       setFormResult(null);
-      login(data, callbackUrl).then((res) => {
+      login(data).then((res) => {
         if (res.success) {
           setFormResult({
             message: res.message,

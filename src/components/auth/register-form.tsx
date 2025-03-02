@@ -56,9 +56,7 @@ export function RegisterForm() {
             type: 'success',
           });
           setTimeout(() => {
-            if (res.redirect) {
-              router.push(res.redirect);
-            }
+            router.push('/login');
           }, 3000);
         } else {
           if (typeof res.error === 'string') {

@@ -1,7 +1,10 @@
-import NextAuth from 'next-auth';
-import authConfig from '@/lib/auth/config';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export const { auth: middleware } = NextAuth(authConfig);
+export default function middleware(_req: NextRequest) {
+  // TODO: Implement middleware
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: [
