@@ -50,7 +50,7 @@ export function RegisterForm() {
       const res = await register(values);
       if (res.success) {
         await update();
-        router.push('/login');
+        router.push('/');
       } else {
         if (typeof res.error === 'string') {
           setFormResult({
