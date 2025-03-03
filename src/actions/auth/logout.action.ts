@@ -4,6 +4,7 @@ import { AUTH_COOKIE_NAME, RESPONSE_MESSAGES } from '@/constants';
 import type { Response } from '@/types/response';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import { isRedirectError } from 'next/dist/client/components/redirect-error';
 
 type LogoutFunction = (returnOrRedirect?: boolean) => Promise<Response<void>>;
 
@@ -19,6 +20,9 @@ export const logout: LogoutFunction = async (returnOrRedirect = false) => {
     }
     redirect('/login');
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
     console.error(error);
     return {
       success: false,
