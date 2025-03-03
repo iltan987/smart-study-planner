@@ -1,5 +1,6 @@
 import { SessionProvider } from '@/providers/session-provider';
 import './globals.css';
+import MainLayout from '@/components/main-layout';
 
 const RootLayout = ({
   children,
@@ -7,9 +8,11 @@ const RootLayout = ({
   children: React.ReactNode;
 }>) => {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <MainLayout>{children}</MainLayout>
+        </SessionProvider>
       </body>
     </html>
   );
