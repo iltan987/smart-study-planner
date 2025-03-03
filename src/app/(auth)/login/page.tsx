@@ -1,26 +1,16 @@
-import LoginForm from '@/components/auth/login-form';
-// import { headers } from 'next/headers';
+import { LoginForm } from '@/components/auth/login-form';
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  searchParams: Promise<{ redirect?: string }>;
 }) {
-  let callbackUrl = '/';
-  const srchParams = await searchParams;
-  if (srchParams && srchParams.callbackUrl) {
-    callbackUrl = srchParams.callbackUrl as string;
-  } // else {
-  //   const headersList = await headers();
-  //   const referer = headersList.get('referer');
-  //   if (referer) {
-  //     callbackUrl = referer;
-  //   }
-  // } MAYBE LATER?
+  const redirectTo = (await searchParams)?.redirect || '/';
   return (
-    <div className="flex min-h-screen items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        <LoginForm callbackUrl={callbackUrl} />
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="p-6 rounded shadow-md">
+        <h1 className="text-2xl font-bold mb-6">Login</h1>
+        <LoginForm redirectTo={redirectTo} />
       </div>
     </div>
   );

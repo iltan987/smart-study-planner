@@ -19,17 +19,16 @@ import {
 } from '@/schemas/auth/register.schema';
 import { useTransition } from 'react';
 import { register } from '@/actions/auth/register.action';
-import { FormResult } from '@/components/auth/form-result';
+import { FormResult } from './form-result';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useSession } from '@/providers/session-provider';
 
 export function RegisterForm() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [isCompleted, setIsCompleted] = useState(false);
-
-  const isDisabled = isPending || isCompleted;
-
+  const { update } = useSession();
   const [formResult, setFormResult] = useState<{
     message: string;
     type: 'success' | 'error';
@@ -46,39 +45,30 @@ export function RegisterForm() {
   });
 
   const onSubmit = (values: RegisterSchema) => {
-    startTransition(() => {
+    startTransition(async () => {
       setFormResult(null);
-      register(values).then((res) => {
-        if (res.success) {
-          setIsCompleted(true);
+      const res = await register(values);
+      if (res.success) {
+        await update();
+        router.push('/');
+      } else {
+        if (typeof res.error === 'string') {
           setFormResult({
-            message: res.message,
-            type: 'success',
+            message: res.error,
+            type: 'error',
           });
-          setTimeout(() => {
-            if (res.redirect) {
-              router.push(res.redirect);
-            }
-          }, 3000);
         } else {
-          if (typeof res.error === 'string') {
-            setFormResult({
-              message: res.error,
-              type: 'error',
+          setFormResult({
+            message: res.error.formErrors[0],
+            type: 'error',
+          });
+          for (const [key, value] of Object.entries(res.error.fieldErrors)) {
+            form.setError(key as keyof RegisterSchema, {
+              message: value[0],
             });
-          } else {
-            setFormResult({
-              message: res.error.formErrors[0],
-              type: 'error',
-            });
-            for (const [key, value] of Object.entries(res.error.fieldErrors)) {
-              form.setError(key as keyof RegisterSchema, {
-                message: value[0],
-              });
-            }
           }
         }
-      });
+      }
     });
   };
 
@@ -93,7 +83,7 @@ export function RegisterForm() {
               <FormLabel>Name</FormLabel>
               <FormControl>
                 <Input
-                  disabled={isDisabled}
+                  disabled={isPending}
                   placeholder="Enter your name"
                   {...field}
                 />
@@ -111,7 +101,7 @@ export function RegisterForm() {
               <FormLabel>Email</FormLabel>
               <FormControl>
                 <Input
-                  disabled={isDisabled}
+                  disabled={isPending}
                   type="email"
                   placeholder="Enter your email"
                   {...field}
@@ -130,7 +120,7 @@ export function RegisterForm() {
               <FormLabel>Password</FormLabel>
               <FormControl>
                 <Input
-                  disabled={isDisabled}
+                  disabled={isPending}
                   type="password"
                   placeholder="Enter your password"
                   {...field}
@@ -149,7 +139,7 @@ export function RegisterForm() {
               <FormLabel>Confirm Password</FormLabel>
               <FormControl>
                 <Input
-                  disabled={isDisabled}
+                  disabled={isPending}
                   type="password"
                   placeholder="Confirm your password"
                   {...field}
@@ -161,14 +151,19 @@ export function RegisterForm() {
           )}
         />
 
-        <Button type="submit" disabled={isDisabled}>
+        <Button type="submit" disabled={isPending}>
           {isPending ? 'Registering...' : 'Register'}
         </Button>
 
         {formResult && (
           <FormResult message={formResult.message} type={formResult.type} />
         )}
-        {isCompleted && <FormResult message="Redirecting..." type="success" />}
+
+        <div className="mt-4">
+          <Link href="/login" className="text-blue-500 hover:underline">
+            Already have an account? Login here.
+          </Link>
+        </div>
       </form>
     </Form>
   );

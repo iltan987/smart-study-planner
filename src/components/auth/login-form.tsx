@@ -15,15 +15,19 @@ import {
   FormMessage,
 } from '../ui/form';
 import { useState, useTransition } from 'react';
-import { FormResult } from './form-result';
+import { FormResult } from '../auth/form-result';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useSession } from '@/providers/session-provider';
 
-const LoginForm = ({ callbackUrl }: { callbackUrl: string }) => {
+export function LoginForm({ redirectTo }: { redirectTo: string }) {
   const [isPending, startTransition] = useTransition();
   const [formResult, setFormResult] = useState<{
     message: string;
     type: 'success' | 'error';
   } | null>(null);
-
+  const router = useRouter();
+  const { update } = useSession();
   const form = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -31,34 +35,35 @@ const LoginForm = ({ callbackUrl }: { callbackUrl: string }) => {
       password: '',
     },
   });
-  const onSubmit = (data: LoginSchema) => {
-    startTransition(() => {
+  const onSubmit = async (data: LoginSchema) => {
+    startTransition(async () => {
       setFormResult(null);
-      login(data, callbackUrl).then((res) => {
-        if (res.success) {
+      const res = await login(data);
+      if (res.success) {
+        await update();
+        setFormResult({
+          message: res.message,
+          type: 'success',
+        });
+        router.push(redirectTo);
+      } else {
+        if (typeof res.error === 'string') {
           setFormResult({
-            message: res.message,
-            type: 'success',
+            message: res.error,
+            type: 'error',
           });
         } else {
-          if (typeof res.error === 'string') {
-            setFormResult({
-              message: res.error,
-              type: 'error',
+          setFormResult({
+            message: res.error.formErrors[0],
+            type: 'error',
+          });
+          for (const [key, value] of Object.entries(res.error.fieldErrors)) {
+            form.setError(key as keyof LoginSchema, {
+              message: value[0],
             });
-          } else {
-            setFormResult({
-              message: res.error.formErrors[0],
-              type: 'error',
-            });
-            for (const [key, value] of Object.entries(res.error.fieldErrors)) {
-              form.setError(key as keyof LoginSchema, {
-                message: value[0],
-              });
-            }
           }
         }
-      });
+      }
     });
   };
 
@@ -108,9 +113,13 @@ const LoginForm = ({ callbackUrl }: { callbackUrl: string }) => {
         {formResult && (
           <FormResult message={formResult.message} type={formResult.type} />
         )}
+
+        <div className="mt-4">
+          <Link href="/register" className="text-blue-500 hover:underline">
+            Don&apos;t have an account? Register here.
+          </Link>
+        </div>
       </form>
     </Form>
   );
-};
-
-export default LoginForm;
+}

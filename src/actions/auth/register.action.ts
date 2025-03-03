@@ -1,12 +1,20 @@
 'use server';
 
-import db from '@/lib/db';
+import { hashPassword } from '@/utils/crypto.util';
+import {
+  AUTH_COOKIE_NAME,
+  AUTH_COOKIE_OPTIONS,
+  RESPONSE_MESSAGES,
+} from '@/constants';
+import { generateToken } from '@/lib/jwt';
+import type { Response } from '@/types/response';
 import {
   registerSchema,
   type RegisterSchema,
 } from '@/schemas/auth/register.schema';
-import type { Response } from '@/types/response';
-import { hashPassword } from '@/utils/password.util';
+import { cookies } from 'next/headers';
+import { sessionSchema } from '@/schemas/auth/session.schema';
+import { getUserByEmail, createUser } from '@/utils/user.util';
 
 type RegisterFunction = (
   credentials: RegisterSchema
@@ -25,33 +33,43 @@ export const register: RegisterFunction = async (credentials) => {
 
     const { email, name, password } = parsedCredentials.data;
 
-    const existingUser = await db.user.findUnique({
-      where: { email },
+    const existingUser = await getUserByEmail(email, {
       select: { id: true },
     });
 
     if (existingUser) {
       return {
         success: false,
-        error: 'User already exists',
+        error: RESPONSE_MESSAGES.USER_EXISTS,
       };
     }
 
     const hashedPassword = await hashPassword(password);
 
-    await db.user.create({
-      data: { email, name, password: hashedPassword },
+    const user = await createUser({
+      data: {
+        email,
+        password: hashedPassword,
+        name,
+      },
+      select: {
+        id: true,
+      },
     });
+
+    const token = await generateToken(sessionSchema.parse(user));
+    const cookieStore = await cookies();
+    cookieStore.set(AUTH_COOKIE_NAME, token, AUTH_COOKIE_OPTIONS);
 
     return {
       success: true,
-      message: 'User registered successfully',
-      redirect: '/login',
+      message: RESPONSE_MESSAGES.REGISTER_SUCCESS,
     };
-  } catch {
+  } catch (error) {
+    console.error(error);
     return {
       success: false,
-      error: 'An error occurred while registering',
+      error: RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR,
     };
   }
 };
