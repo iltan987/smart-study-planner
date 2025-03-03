@@ -7,9 +7,8 @@ export default async function LoginPage({
 }) {
   const redirectTo = (await searchParams)?.redirect || '/';
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="p-6 rounded shadow-md">
-        <h1 className="text-2xl font-bold mb-6">Login</h1>
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
+      <div className="flex w-full max-w-sm flex-col gap-6">
         <LoginForm redirectTo={redirectTo} />
       </div>
     </div>
