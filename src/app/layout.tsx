@@ -1,3 +1,4 @@
+import { SessionProvider } from '@/providers/session-provider';
 import './globals.css';
 
 const RootLayout = ({
@@ -7,7 +8,9 @@ const RootLayout = ({
 }>) => {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <SessionProvider>{children}</SessionProvider>
+      </body>
     </html>
   );
 };
