@@ -1,12 +1,4 @@
-import {
-  Calendar,
-  Home,
-  MessageSquare,
-  Settings,
-  Brain,
-  List,
-  User,
-} from 'lucide-react';
+import { Calendar, Home, Settings, List, User, BotIcon } from 'lucide-react';
 
 export const navigationItems = [
   {
@@ -22,12 +14,7 @@ export const navigationItems = [
   {
     title: 'ChatBot',
     url: '/chatbot',
-    icon: MessageSquare,
-  },
-  {
-    title: 'ChatBot2',
-    url: '/chatbot',
-    icon: Brain,
+    icon: BotIcon,
   },
   {
     title: 'Todo List',
