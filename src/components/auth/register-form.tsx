@@ -19,10 +19,8 @@ import {
 } from '@/schemas/auth/register.schema';
 import { useTransition } from 'react';
 import { register } from '@/actions/auth/register.action';
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useSession } from '@/providers/session-provider';
 import {
   Card,
   CardContent,
@@ -30,14 +28,12 @@ import {
   CardHeader,
   CardTitle,
 } from '../ui/card';
+import { toast } from 'sonner';
+import { signIn } from 'next-auth/react';
 
 export function RegisterForm() {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const { update } = useSession();
-  const [formResult, setFormResult] = useState<{
-    message: string;
-  } | null>(null);
+  const { push } = useRouter();
 
   const form = useForm({
     resolver: zodResolver(registerSchema),
@@ -51,20 +47,23 @@ export function RegisterForm() {
 
   const onSubmit = (values: RegisterSchema) => {
     startTransition(async () => {
-      setFormResult(null);
       const res = await register(values);
+
       if (res.success) {
-        await update();
-        router.push('/');
+        await signIn('credentials', {
+          email: values.email,
+          password: values.password,
+          redirect: false,
+        });
+        toast.success('Success', { description: res.message });
+        push('/');
       } else {
         if (typeof res.error === 'string') {
-          setFormResult({
-            message: res.error,
-          });
+          toast.error('Error', { description: res.error });
         } else {
-          setFormResult({
-            message: res.error.formErrors[0],
-          });
+          if (res.error.formErrors && res.error.formErrors.length > 0) {
+            toast.error('Error', { description: res.error.formErrors[0] });
+          }
           for (const [key, value] of Object.entries(res.error.fieldErrors)) {
             form.setError(key as keyof RegisterSchema, {
               message: value[0],
@@ -171,16 +170,6 @@ export function RegisterForm() {
                 <Button variant="outline" className="w-full" disabled>
                   Register with Google (Coming soon)
                 </Button>
-
-                {formResult && (
-                  <div
-                    className={
-                      'p-4 rounded-md bg-destructive/15 text-destructive'
-                    }
-                  >
-                    {formResult.message}
-                  </div>
-                )}
               </div>
               <div className="mt-4 text-center text-sm">
                 Already have an account?{' '}

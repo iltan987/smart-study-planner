@@ -14,10 +14,10 @@ import {
   FormControl,
   FormMessage,
 } from '../ui/form';
-import { useState, useTransition } from 'react';
+import { useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useSession } from '@/providers/session-provider';
+import { useSession } from 'next-auth/react';
 import {
   Card,
   CardContent,
@@ -25,14 +25,14 @@ import {
   CardHeader,
   CardTitle,
 } from '../ui/card';
+import { toast } from 'sonner';
+import { RESPONSE_MESSAGES_SUCCESS } from '@/constants/response-messages';
 
-export function LoginForm({ redirectTo }: { redirectTo: string }) {
+export function LoginForm() {
   const [isPending, startTransition] = useTransition();
-  const [formResult, setFormResult] = useState<{
-    message: string;
-  } | null>(null);
-  const router = useRouter();
   const { update } = useSession();
+  const { push } = useRouter();
+
   const form = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -40,22 +40,27 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
       password: '',
     },
   });
+
   const onSubmit = async (data: LoginSchema) => {
     startTransition(async () => {
-      setFormResult(null);
       const res = await login(data);
+
       if (res.success) {
-        await update();
-        router.push(redirectTo);
+        toast.success('Success', {
+          description: RESPONSE_MESSAGES_SUCCESS.LOGIN_SUCCESS,
+        });
+
+        update(data);
+        push('/');
       } else {
         if (typeof res.error === 'string') {
-          setFormResult({
-            message: res.error,
-          });
+          toast.error('Error', { description: res.error });
         } else {
-          setFormResult({
-            message: res.error.formErrors[0],
-          });
+          if (res.error.formErrors && res.error.formErrors.length > 0) {
+            toast.error('Error', {
+              description: res.error.formErrors[0],
+            });
+          }
           for (const [key, value] of Object.entries(res.error.fieldErrors)) {
             form.setError(key as keyof LoginSchema, {
               message: value[0],
@@ -121,16 +126,6 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
                 <Button variant="outline" className="w-full" disabled>
                   Login with Google (Coming soon)
                 </Button>
-
-                {formResult && (
-                  <div
-                    className={
-                      'p-4 rounded-md bg-destructive/15 text-destructive'
-                    }
-                  >
-                    {formResult.message}
-                  </div>
-                )}
               </div>
               <div className="mt-4 text-center text-sm">
                 Don&apos;t have an account?{' '}

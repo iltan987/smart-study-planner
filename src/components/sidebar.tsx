@@ -1,7 +1,5 @@
 'use client';
 
-import { logout } from '@/actions/auth/logout.action';
-import { getUser } from '@/actions/auth/user.action';
 import {
   Sidebar as SidebarComponent,
   SidebarContent,
@@ -15,34 +13,25 @@ import {
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
 import { NavUser } from './nav-user';
 import { ThemeToggle } from './theme-toggle';
 import { navigationItems } from '@/config/navigation';
+import { toast } from 'sonner';
+import { RESPONSE_MESSAGES_SUCCESS } from '@/constants/response-messages';
+import { signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 export function Sidebar() {
-  const [user, setUser] = useState<{
-    name: string;
-    email: string;
-  } | null>(null);
   const { setOpenMobile } = useSidebar();
-
+  const { push } = useRouter();
   const pathname = usePathname();
   const isActive = (path: string) => pathname === path;
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      const user = await getUser();
-      if (user.success) {
-        setUser(user.data);
-      }
-    };
-    fetchUser();
-  }, []);
-
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setOpenMobile(false);
-    logout();
+    await signOut({ redirect: false });
+    toast.success(RESPONSE_MESSAGES_SUCCESS.LOGOUT_SUCCESS);
+    push('/login');
   };
 
   return (
@@ -74,7 +63,7 @@ export function Sidebar() {
             <ThemeToggle />
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <NavUser user={user} handleLogout={handleLogout} />
+            <NavUser handleLogout={handleLogout} />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

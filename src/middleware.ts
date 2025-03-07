@@ -1,56 +1,70 @@
+import NextAuth from 'next-auth';
+import authConfig from '@/config/auth.config';
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { verifyToken } from '@/lib/jwt';
-import { AUTH_COOKIE_NAME } from '@/constants';
+import { RESPONSE_MESSAGES_ERRORS } from './constants/response-messages';
+
+const { auth } = NextAuth(authConfig);
 
 const AUTH_ROUTES = ['/login', '/register'];
 const DEFAULT_REDIRECT = '/';
+const API_ROUTE = '/api/auth';
+const ALLOWED_API_ROUTES = [
+  '/api/auth/session',
+  '/api/auth/csrf',
+  '/api/auth/providers',
+];
+const API_ROUTES_NEED_AUTH = ['/api/auth/signout'];
+const API_ROUTES_NO_AUTH = ['/api/auth/callback/credentials'];
 
-export async function middleware(request: NextRequest) {
-  const path = request.nextUrl.pathname;
-  const auth_token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
-  let isAuthenticated = false;
+export default auth((req) => {
+  const { pathname } = req.nextUrl;
+  const isLoggedIn = !!req.auth;
 
-  // Verify token if exists
-  if (auth_token) {
-    try {
-      await verifyToken(auth_token);
-      isAuthenticated = true;
-    } catch (error) {
-      console.error('Invalid token:', error);
+  if (pathname.startsWith(API_ROUTE)) {
+    if (ALLOWED_API_ROUTES.some((route) => pathname.startsWith(route))) {
+      return NextResponse.next();
+    } else if (
+      isLoggedIn &&
+      API_ROUTES_NEED_AUTH.some((route) => pathname.startsWith(route))
+    ) {
+      return NextResponse.next();
+    } else if (
+      !isLoggedIn &&
+      API_ROUTES_NO_AUTH.some((route) => pathname.startsWith(route))
+    ) {
+      return NextResponse.next();
+    } else {
+      console.log(`API route: ${pathname}`);
+      const response = NextResponse.json(
+        { error: RESPONSE_MESSAGES_ERRORS.UNAUTHORIZED },
+        { status: 401 }
+      );
+      return response;
     }
   }
 
-  // Handle logout route
-  if (path === '/logout') {
-    const response = isAuthenticated
-      ? NextResponse.redirect(new URL('/login', request.url))
-      : NextResponse.redirect(new URL('/', request.url));
-
-    response.cookies.delete(AUTH_COOKIE_NAME);
-    return response;
+  if (pathname === '/logout') {
+    if (isLoggedIn) {
+      return NextResponse.next();
+    }
+    return NextResponse.redirect(new URL('/login', req.url));
   }
 
   // Redirect authenticated users from auth routes
-  if (AUTH_ROUTES.includes(path)) {
-    if (isAuthenticated) {
-      return NextResponse.redirect(new URL(DEFAULT_REDIRECT, request.url));
+  if (AUTH_ROUTES.includes(pathname)) {
+    if (isLoggedIn) {
+      return NextResponse.redirect(new URL(DEFAULT_REDIRECT, req.url));
     }
     return NextResponse.next();
   }
 
   // Protect all other routes
-  if (!isAuthenticated) {
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', path);
-    const response = NextResponse.redirect(loginUrl);
-
-    response.cookies.delete(AUTH_COOKIE_NAME);
-    return response;
+  if (!isLoggedIn) {
+    return NextResponse.redirect(new URL('/login', req.url));
   }
 
   return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: [

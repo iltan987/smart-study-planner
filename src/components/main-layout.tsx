@@ -5,6 +5,8 @@ import { Sidebar } from '@/components/sidebar';
 import { usePathname } from 'next/navigation';
 import { ThemeProvider } from 'next-themes';
 import { Navbar } from './navbar';
+import { AuthProvider } from '@/providers/auth-provider';
+import { Toaster } from '@/components/ui/sonner';
 
 const AuthPages = ['/login', '/register'];
 
@@ -17,26 +19,29 @@ const MainLayout = ({
   const isAuthPage = AuthPages.includes(pathName);
 
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="light"
-      enableSystem
-      disableTransitionOnChange
-    >
-      {isAuthPage ? (
-        children
-      ) : (
-        <SidebarProvider>
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <div className="flex-1">
-              <Navbar />
-              <main className="p-4">{children}</main>
+    <AuthProvider>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+      >
+        <Toaster />
+        {isAuthPage ? (
+          children
+        ) : (
+          <SidebarProvider>
+            <div className="flex min-h-screen">
+              <Sidebar />
+              <div className="flex-1">
+                <Navbar />
+                <main className="p-4">{children}</main>
+              </div>
             </div>
-          </div>
-        </SidebarProvider>
-      )}
-    </ThemeProvider>
+          </SidebarProvider>
+        )}
+      </ThemeProvider>
+    </AuthProvider>
   );
 };
 
