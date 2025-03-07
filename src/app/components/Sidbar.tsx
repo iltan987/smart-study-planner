@@ -23,7 +23,7 @@ export default function Sidebar() {
   };
 
   const menuItems = [
-    { label: 'Home', icon: <IoMdHome />, path: '#' },
+    { label: 'Home', icon: <IoMdHome />, path: '/Home' },
     { label: 'User profile', icon: <CgProfile />, path: '#' },
     { label: 'Setting', icon: <IoIosSettings />, path: '#' },
     { label: 'Calendar', icon: <FaCalendarAlt />, path: '#' },
