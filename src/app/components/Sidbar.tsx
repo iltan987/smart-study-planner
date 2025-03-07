@@ -9,7 +9,7 @@ import { LuListTodo } from 'react-icons/lu';
 import { FiLogOut } from 'react-icons/fi';
 import { IoMenu } from 'react-icons/io5';
 import { IoCloseOutline } from 'react-icons/io5';
-import MenuItem from './MenuItem';
+import MenuItem from './SidebarItems';
 
 export default function Sidebar() {
   const [ismenuOpen, setIsMenuOpen] = useState(false);
