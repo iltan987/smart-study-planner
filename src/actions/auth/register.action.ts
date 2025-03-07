@@ -1,19 +1,12 @@
 'use server';
 
 import { hashPassword } from '@/utils/crypto.util';
-import {
-  AUTH_COOKIE_NAME,
-  AUTH_COOKIE_OPTIONS,
-  RESPONSE_MESSAGES,
-} from '@/constants';
-import { generateToken } from '@/lib/jwt';
+import { RESPONSE_MESSAGES } from '@/constants/response-messages';
 import type { Response } from '@/types/response';
 import {
   registerSchema,
   type RegisterSchema,
 } from '@/schemas/auth/register.schema';
-import { cookies } from 'next/headers';
-import { sessionSchema } from '@/schemas/auth/session.schema';
 import { getUserByEmail, createUser } from '@/utils/user.util';
 
 type RegisterFunction = (
@@ -46,7 +39,7 @@ export const register: RegisterFunction = async (credentials) => {
 
     const hashedPassword = await hashPassword(password);
 
-    const user = await createUser({
+    await createUser({
       data: {
         email,
         password: hashedPassword,
@@ -56,10 +49,6 @@ export const register: RegisterFunction = async (credentials) => {
         id: true,
       },
     });
-
-    const token = await generateToken(sessionSchema.parse(user));
-    const cookieStore = await cookies();
-    cookieStore.set(AUTH_COOKIE_NAME, token, AUTH_COOKIE_OPTIONS);
 
     return {
       success: true,
