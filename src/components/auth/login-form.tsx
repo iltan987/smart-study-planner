@@ -15,16 +15,21 @@ import {
   FormMessage,
 } from '../ui/form';
 import { useState, useTransition } from 'react';
-import { FormResult } from '../auth/form-result';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/providers/session-provider';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '../ui/card';
 
 export function LoginForm({ redirectTo }: { redirectTo: string }) {
   const [isPending, startTransition] = useTransition();
   const [formResult, setFormResult] = useState<{
     message: string;
-    type: 'success' | 'error';
   } | null>(null);
   const router = useRouter();
   const { update } = useSession();
@@ -41,21 +46,15 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
       const res = await login(data);
       if (res.success) {
         await update();
-        setFormResult({
-          message: res.message,
-          type: 'success',
-        });
         router.push(redirectTo);
       } else {
         if (typeof res.error === 'string') {
           setFormResult({
             message: res.error,
-            type: 'error',
           });
         } else {
           setFormResult({
             message: res.error.formErrors[0],
-            type: 'error',
           });
           for (const [key, value] of Object.entries(res.error.fieldErrors)) {
             form.setError(key as keyof LoginSchema, {
@@ -68,58 +67,81 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input
-                  disabled={isPending}
-                  type="email"
-                  placeholder="Enter your email"
-                  {...field}
+    <div className="flex flex-col gap-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardDescription>
+            Enter your email below to login to your account
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <div className="flex flex-col gap-6">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          disabled={isPending}
+                          type="email"
+                          placeholder="Enter your email"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Password</FormLabel>
-              <FormControl>
-                <Input
-                  disabled={isPending}
-                  type="password"
-                  placeholder="Enter your password"
-                  {...field}
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input
+                          disabled={isPending}
+                          type="password"
+                          placeholder="Enter your password"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit" disabled={isPending}>
-          {isPending ? 'Logging in...' : 'Login'}
-        </Button>
+                <Button type="submit" disabled={isPending} className="w-full">
+                  {isPending ? 'Logging in...' : 'Login'}
+                </Button>
+                <Button variant="outline" className="w-full" disabled>
+                  Login with Google (Coming soon)
+                </Button>
 
-        {formResult && (
-          <FormResult message={formResult.message} type={formResult.type} />
-        )}
-
-        <div className="mt-4">
-          <Link href="/register" className="text-blue-500 hover:underline">
-            Don&apos;t have an account? Register here.
-          </Link>
-        </div>
-      </form>
-    </Form>
+                {formResult && (
+                  <div
+                    className={
+                      'p-4 rounded-md bg-destructive/15 text-destructive'
+                    }
+                  >
+                    {formResult.message}
+                  </div>
+                )}
+              </div>
+              <div className="mt-4 text-center text-sm">
+                Don&apos;t have an account?{' '}
+                <Link href="/register" className="underline underline-offset-4">
+                  Sign up
+                </Link>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
