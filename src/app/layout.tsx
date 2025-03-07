@@ -1,4 +1,3 @@
-import { SessionProvider } from '@/providers/session-provider';
 import './globals.css';
 import MainLayout from '@/components/main-layout';
 
@@ -10,9 +9,7 @@ const RootLayout = ({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <SessionProvider>
-          <MainLayout>{children}</MainLayout>
-        </SessionProvider>
+        <MainLayout>{children}</MainLayout>
       </body>
     </html>
   );

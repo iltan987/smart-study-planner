@@ -2,7 +2,7 @@
 
 import { ChevronsUpDown, LogOut, User } from 'lucide-react';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +13,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SidebarMenuButton, useSidebar } from '@/components/ui/sidebar';
+import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 function getInitials(name: string): string {
   if (!name) return '';
@@ -28,18 +30,26 @@ function getInitials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-export function NavUser({
-  user,
-  handleLogout,
-}: {
-  user: {
-    name: string;
-    email: string;
-  } | null;
-  handleLogout: () => void;
-}) {
+export function NavUser({ handleLogout }: { handleLogout: () => void }) {
   const { isMobile } = useSidebar();
+  const { data, status } = useSession();
+  const isLoading = status === 'loading';
+
+  const user = data?.user || null;
   const initials = user?.name ? getInitials(user.name) : '';
+
+  if (isLoading) {
+    return (
+      <SidebarMenuButton size="lg">
+        <Skeleton className="h-8 w-8 rounded-lg" />
+        <div className="grid flex-1 gap-1 text-left">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+        <Skeleton className="ml-auto h-4 w-4" />
+      </SidebarMenuButton>
+    );
+  }
 
   return (
     <DropdownMenu>
@@ -49,6 +59,7 @@ export function NavUser({
           className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
         >
           <Avatar className="h-8 w-8 rounded-lg">
+            {user?.image && <AvatarImage src={user.image} alt="User profile" />}
             <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
           </Avatar>
           <div className="grid flex-1 text-left text-sm leading-tight">
