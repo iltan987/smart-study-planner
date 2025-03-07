@@ -13,6 +13,7 @@ export const RESPONSE_MESSAGES_SUCCESS = {
   UPDATE_SUCCESS: 'User updated successfully',
   SESSION_SUCCESS: 'Session retrieved successfully',
   USER_SUCCESS: 'User retrieved successfully',
+  MESSAGE_SUCCESS: 'Message saved successfully',
 };
 
 export const RESPONSE_MESSAGES = {
