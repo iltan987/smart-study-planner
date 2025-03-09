@@ -1,5 +1,5 @@
+import { AuthProvider } from '@/providers/auth-provider';
 import './globals.css';
-import MainLayout from '@/components/main-layout';
 
 const RootLayout = ({
   children,
@@ -9,7 +9,7 @@ const RootLayout = ({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <MainLayout>{children}</MainLayout>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

@@ -1,5 +1,5 @@
 'use client';
-import { useRouter } from "next/navigation";
+import { useRouter } from 'next/navigation';
 interface MenubarItemProps {
   label: string;
   icon?: React.ReactNode;
@@ -9,11 +9,13 @@ interface MenubarItemProps {
 export default function MenubarItem({ label, icon, path }: MenubarItemProps) {
   const isLogout = label === 'LogOut';
   const router = useRouter();
-    return (
+  return (
     <button
-    className={`flex items-center p-3 text-lg w-auto text-left cursor-pointer 
+      className={`flex items-center p-3 text-lg w-auto text-left cursor-pointer 
       hover:bg-purple-200 mb-2 px-4 rounded-lg 
-      ${isLogout ? 'mt-auto' : ''}`} onClick={()=>router.push(path)}>
+      ${isLogout ? 'mt-auto' : ''}`}
+      onClick={() => router.push(path)}
+    >
       <span className="text-gray-500 pr-2 flex-shrink-0 ">{icon}</span>
       <span className="text-lg text-black font-normal flex-grow">{label}</span>
     </button>
