@@ -2,12 +2,9 @@ import { z } from 'zod';
 
 export const messageSchema = z
   .object({
-    message: z.string().trim().nonempty({ message: 'Message is required' }),
-    timestamp: z.coerce
-      .number()
-      .int()
-      .positive({ message: 'Timestamp must be a positive integer' }),
-    owner: z.enum(['user', 'ai']).default('user'),
+    content: z.string().trim().nonempty({ message: 'Message is required' }),
+    time: z.date(),
+    owner: z.enum(['user', 'model']).default('model'),
   })
   .strict();
 

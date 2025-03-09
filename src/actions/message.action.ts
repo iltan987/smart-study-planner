@@ -1,10 +1,9 @@
 'use server';
 
 import { RESPONSE_MESSAGES_SUCCESS } from '@/constants/response-messages';
-import redis from '@/lib/redis';
+import prisma from '@/lib/db';
 import { messageSchema, type MessageSchema } from '@/schemas/message.schema';
 import type { Response } from '@/types/response';
-import { v4 as uuidv4 } from 'uuid';
 
 type SaveMessageFunction = (
   userId: string,
@@ -20,19 +19,17 @@ export const saveMessage: SaveMessageFunction = async (userId, message) => {
     };
   }
 
-  let messageId = uuidv4();
-
-  while (await redis.exists(`chat:${userId}:${messageId}`)) {
-    messageId = uuidv4();
-  }
-
-  const key = `chat:${userId}:${messageId}`;
-
-  await redis.hSet(key, {
-    ...message,
+  const { id: messageId } = await prisma.history.create({
+    data: {
+      userId,
+      content: parsedMessage.data.content,
+      owner: parsedMessage.data.owner,
+      time: parsedMessage.data.time,
+    },
+    select: {
+      id: true,
+    },
   });
-
-  await redis.expire(key, 60 * 60 * 24);
 
   return {
     success: true,
@@ -46,22 +43,40 @@ type GetUserChatHistoryFunction = (userId: string) => Promise<MessageSchema[]>;
 export const getUserChatHistory: GetUserChatHistoryFunction = async (
   userId
 ) => {
-  const keys = await redis.keys(`chat:${userId}:*`);
+  const oneDayAgo = new Date();
+  oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
-  const messages: MessageSchema[] = [];
-  for (const key of keys) {
-    const message = await redis.hGetAll(key);
-    const parsedMessage = messageSchema.safeParse(message);
-    if (!parsedMessage.success) {
-      continue;
-    }
+  const history = await prisma.history.findMany({
+    where: { userId, time: { gt: oneDayAgo } },
+  });
 
-    messages.push(parsedMessage.data);
-  }
+  const messages: MessageSchema[] = history.map((msg) => ({
+    content: msg.content,
+    owner: msg.owner,
+    time: msg.time,
+  }));
 
-  if (messages.length === 0) {
-    return [];
-  }
+  return messages.sort((a, b) => a.time.getTime() - b.time.getTime());
+};
 
-  return messages.sort((a, b) => a.timestamp - b.timestamp);
+export const deleteUserChatHistory = async (userId: string) => {
+  await prisma.history.deleteMany({
+    where: { userId },
+  });
+
+  return {
+    success: true,
+    message: RESPONSE_MESSAGES_SUCCESS.MESSAGE_SUCCESS,
+  };
+};
+
+export const deleteMessage = async (userId: string, messageId: string) => {
+  await prisma.history.delete({
+    where: { id: messageId, userId },
+  });
+
+  return {
+    success: true,
+    message: RESPONSE_MESSAGES_SUCCESS.MESSAGE_SUCCESS,
+  };
 };
