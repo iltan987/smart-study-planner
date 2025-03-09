@@ -14,6 +14,7 @@ export const RESPONSE_MESSAGES_SUCCESS = {
   SESSION_SUCCESS: 'Session retrieved successfully',
   USER_SUCCESS: 'User retrieved successfully',
   MESSAGE_SUCCESS: 'Message saved successfully',
+  MESSAGE_SENT_SUCCESS: 'Message sent successfully',
 };
 
 export const RESPONSE_MESSAGES = {
