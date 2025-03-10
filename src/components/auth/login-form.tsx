@@ -46,20 +46,16 @@ export function LoginForm() {
       const res = await login(data);
 
       if (res.success) {
-        toast.success('Success', {
-          description: RESPONSE_MESSAGES_SUCCESS.LOGIN_SUCCESS,
-        });
+        toast.success(RESPONSE_MESSAGES_SUCCESS.LOGIN_SUCCESS);
 
         update(data);
         push('/');
       } else {
         if (typeof res.error === 'string') {
-          toast.error('Error', { description: res.error });
+          toast.error(res.error);
         } else {
           if (res.error.formErrors && res.error.formErrors.length > 0) {
-            toast.error('Error', {
-              description: res.error.formErrors[0],
-            });
+            toast.error(res.error.formErrors[0]);
           }
           for (const [key, value] of Object.entries(res.error.fieldErrors)) {
             form.setError(key as keyof LoginSchema, {
