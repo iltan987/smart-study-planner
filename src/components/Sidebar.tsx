@@ -1,5 +1,4 @@
 'use client';
-
 import {
   Home,
   User,
@@ -52,17 +51,21 @@ const Sidebar = () => {
     { name: 'Calendar', icon: Calendar, path: '/calendar' },
     { name: 'Chatbot', icon: Bot, path: '/chatbot' },
     { name: 'To-Do List', icon: ListTodo, path: '/todo' },
-    { name: 'Logout', icon: LogOut, path: '/logout' },
+    { name: 'Logout', icon: LogOut, path: '#' },
   ];
+
+  // Separate main menu items from the logout item
+  const mainItems = menuItems.filter((item) => item.name !== 'Logout');
+  const logoutItem = menuItems.find((item) => item.name === 'Logout');
 
   return (
     <>
       {/* Toggle Button - Only visible on mobile and disappears when sidebar is open */}
       {!isOpen && (
-        <div className="max-h-screen w-[30px] bg-gray-100 ">
+        <div className="max-h-screen w-[30px] bg-gray-100">
           <button
             onClick={handleToggleClick}
-            className="fixed top-2 p-4 rounded-md hover:bg-gray-100 md:hidden"
+            className="fixed top-2 left-4 p-4 rounded-md hover:bg-gray-100 md:hidden"
           >
             <Menu className="w-6 h-6" />
           </button>
@@ -73,23 +76,42 @@ const Sidebar = () => {
       <aside
         ref={sidebarRef}
         className={cn(
-          'h-screen bg-white shadow-lg p-4 transition-all duration-300 flex flex-col gap-4 md:w-64 md:flex',
-          isOpen ? 'w-64 absolute left-0 top-0 z-40' : 'hidden md:block' // Hidden on mobile unless toggled
+          'h-screen bg-white shadow-lg p-4 transition-all duration-300 flex flex-col md:w-64',
+          isOpen ? 'w-64 absolute left-0 top-0 z-40 flex' : 'hidden md:flex'
         )}
       >
-        {menuItems.map(({ name, icon: Icon, path }) => (
-          <button
-            key={name}
-            onClick={() => {
-              router.push(path);
-              setIsOpen(false); // Close sidebar on navigation (mobile only)
-            }}
-            className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-200"
-          >
-            <Icon className="w-6 h-6" />
-            <span>{name}</span>
-          </button>
-        ))}
+        {/* Container to push logout button to the bottom */}
+        <div className="flex flex-col justify-between h-full">
+          <div className="flex flex-col gap-4">
+            {mainItems.map(({ name, icon: Icon, path }) => (
+              <button
+                key={name}
+                onClick={() => {
+                  router.push(path);
+                  setIsOpen(false); // Close sidebar on navigation (mobile only)
+                }}
+                className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-200"
+              >
+                <Icon className="w-6 h-6" />
+                <span>{name}</span>
+              </button>
+            ))}
+          </div>
+          {logoutItem && (
+            <div>
+              <button
+                onClick={() => {
+                  router.push(logoutItem.path);
+                  setIsOpen(false);
+                }}
+                className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-200 "
+              >
+                <logoutItem.icon className="w-6 h-6" />
+                <span>{logoutItem.name}</span>
+              </button>
+            </div>
+          )}
+        </div>
       </aside>
     </>
   );
