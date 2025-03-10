@@ -55,14 +55,14 @@ export function RegisterForm() {
           password: values.password,
           redirect: false,
         });
-        toast.success('Success', { description: res.message });
+        toast.success(res.message);
         push('/');
       } else {
         if (typeof res.error === 'string') {
-          toast.error('Error', { description: res.error });
+          toast.error(res.error);
         } else {
           if (res.error.formErrors && res.error.formErrors.length > 0) {
-            toast.error('Error', { description: res.error.formErrors[0] });
+            toast.error(res.error.formErrors[0]);
           }
           for (const [key, value] of Object.entries(res.error.fieldErrors)) {
             form.setError(key as keyof RegisterSchema, {

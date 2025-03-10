@@ -4,8 +4,7 @@ import { SessionProvider } from 'next-auth/react';
 
 export function AuthProvider({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return <SessionProvider>{children}</SessionProvider>;
+  ...props
+}: React.ComponentProps<typeof SessionProvider>) {
+  return <SessionProvider {...props}>{children}</SessionProvider>;
 }
