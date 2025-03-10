@@ -15,8 +15,8 @@ model User {
   emailVerified DateTime?
   image         String?
   accounts      Account[]
-  Memory        Memory[]
-  History       History[]
+  memory        Memory[]
+  history       History[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
