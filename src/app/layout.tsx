@@ -19,7 +19,7 @@ const RootLayout = ({
           disableTransitionOnChange
         >
           <AuthProvider>
-            <Toaster />
+            <Toaster richColors />
             <MainLayout>{children}</MainLayout>
           </AuthProvider>
         </ThemeProvider>
