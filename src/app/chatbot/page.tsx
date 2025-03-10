@@ -1,18 +1,44 @@
-import React from 'react';
+'use client';
+import React, { useState } from 'react';
 
 export default function ChatBot() {
+  const [message, setMessage] = useState(''); // Stores input field text
+  const [messages, setMessages] = useState<string[]>([]); // Stores sent messages
+
+  // Handle sending messages
+  const sendMessage = () => {
+    if (message.trim() === '') return; // Prevent sending empty messages
+    setMessages([...messages, message]); // Add new message to state
+    setMessage(''); // Clear input field
+  };
+
   return (
-    <div className="flex flex-col h-screen ">
+    <div className="flex flex-col h-screen ml-4 md:ml-2">
       {/* Top Bar */}
       <div className="flex items-center justify-between p-4 border-b bg-white">
         <h1 className="text-xl font-semibold">CHATBOT</h1>
       </div>
 
-      {/* Center: "HOW CAN I HELP YOU?" */}
-      <div className="flex-grow flex items-center justify-center bg-white">
-        <p className="text-2xl font-semibold text-gray-400">
-          HOW CAN I HELP YOU?
-        </p>
+      {/* Message Display Area */}
+      <div className="flex-grow flex flex-col bg-white p-4 space-y-2 overflow-y-auto">
+        {messages.length === 0 ? (
+          // Show the centered text when there are no messages
+          <div className="flex-grow flex items-center justify-center">
+            <p className="text-2xl font-semibold text-gray-400">
+              HOW CAN I HELP YOU?
+            </p>
+          </div>
+        ) : (
+          // Display messages if available
+          messages.map((msg, index) => (
+            <div
+              key={index}
+              className="p-2 bg-blue-100 rounded-lg self-end max-w-xs"
+            >
+              {msg}
+            </div>
+          ))
+        )}
       </div>
 
       {/* Bottom Bar */}
@@ -36,11 +62,13 @@ export default function ChatBot() {
           </svg>
         </button>
 
-        {/* Text Input */}
         <input
           type="text"
           placeholder="Write a message..."
           className="flex-grow px-4 py-2 border rounded focus:outline-none"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)} // Update input state
+          onKeyDown={(e) => e.key === 'Enter' && sendMessage()} // Send on Enter key
         />
 
         {/* Microphone button */}
@@ -63,7 +91,10 @@ export default function ChatBot() {
         </button>
 
         {/* Send button */}
-        <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+        <button
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          onClick={sendMessage}
+        >
           Send
         </button>
       </div>
