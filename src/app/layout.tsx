@@ -1,7 +1,6 @@
 import { AuthProvider } from '@/providers/auth-provider';
-import Link from 'next/link';
 import './globals.css';
-import Sidebar from '@/components/Sidbar';
+import Sidebar from '../components/Sidebar';
 
 const RootLayout = ({
   children,
@@ -12,14 +11,14 @@ const RootLayout = ({
     <html lang="en" suppressHydrationWarning>
       <body>
         <AuthProvider>
-          <div className="flex h-screen x-space-1">
-            {/* Sidebar - 1/6 width */}
-            <div className="w-1/6">
-              <Sidebar />
-            </div>
+          <div className="flex h-screen">
+            {/* Sidebar - Always visible on desktop, toggled on mobile */}
+            <Sidebar />
 
-            {/* Main Content - 5/6 width */}
-            <div className="w-5/6">{children}</div>
+            {/* Main Content */}
+            <div className="flex-1 pl-4 overflow-auto bg-gray-100">
+              {children}
+            </div>
           </div>
         </AuthProvider>
       </body>
