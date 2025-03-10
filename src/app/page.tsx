@@ -105,21 +105,21 @@ const Home = () => {
 
       {/* Features Section */}
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-10 text-center">
-        <div className="p-6 border rounded-lg shadow-lg hover:bg-gray-100">
+        <div className="p-6 border rounded-lg shadow-lg hover:bg-gray-200">
           <h2 className="text-xl font-semibold">📅 Task Scheduling</h2>
           <p className="text-gray-600 mt-2">
             Plan study sessions effortlessly.
           </p>
         </div>
-        <div className="p-6 border rounded-lg shadow-lg hover:bg-gray-100">
+        <div className="p-6 border rounded-lg shadow-lg hover:bg-gray-200">
           <h2 className="text-xl font-semibold">⏳ Time Management</h2>
           <p className="text-gray-600 mt-2">Stay productive with timers.</p>
         </div>
-        <div className="p-6 border rounded-lg shadow-lg hover:bg-gray-100">
+        <div className="p-6 border rounded-lg shadow-lg hover:bg-gray-200">
           <h2 className="text-xl font-semibold">📊 Progress Tracking</h2>
           <p className="text-gray-600 mt-2">See completed tasks easily.</p>
         </div>
-        <div className="p-6 border rounded-lg shadow-lg hover:bg-gray-100">
+        <div className="p-6 border rounded-lg shadow-lg hover:bg-gray-200">
           <h2 className="text-xl font-semibold">🎯 AI Recommendations</h2>
           <p className="text-gray-600 mt-2">Smart study suggestions.</p>
         </div>
