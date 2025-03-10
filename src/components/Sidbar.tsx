@@ -23,12 +23,12 @@ export default function Sidebar() {
   };
 
   const menuItems = [
-    { label: 'Home', icon: <IoMdHome />, path: '/Home' },
-    { label: 'User profile', icon: <CgProfile />, path: '#' },
-    { label: 'Setting', icon: <IoIosSettings />, path: '#' },
-    { label: 'Calendar', icon: <FaCalendarAlt />, path: '#' },
-    { label: 'ChatBot', icon: <FaRobot />, path: '#' },
-    { label: 'TODO List', icon: <LuListTodo />, path: '#' },
+    { label: 'Home', icon: <IoMdHome />, path: '/' },
+    { label: 'User profile', icon: <CgProfile />, path: '/profile' },
+    { label: 'Setting', icon: <IoIosSettings />, path: '/settings' },
+    { label: 'Calendar', icon: <FaCalendarAlt />, path: '/calendar' },
+    { label: 'ChatBot', icon: <FaRobot />, path: '/chatbot' },
+    { label: 'TODO List', icon: <LuListTodo />, path: '/todo' },
     { label: 'LogOut', icon: <FiLogOut />, path: '#' },
   ];
 
