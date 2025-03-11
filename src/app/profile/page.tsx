@@ -24,8 +24,8 @@ export default function Profile() {
   });
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white shadow-md rounded-lg h-screen">
-      <h2 className="text-2xl font-semibold mb-4">User Profile</h2>
+    <div className="max-w-2xl mx-auto h-auto p-6 bg-white shadow-md rounded-lg h-screen">
+      <h2 className="text-2xl font-semibold mb-4 pb-4">User Profile</h2>
 
       {/* Name and Email */}
       <div className="space-y-4 mb-4">
@@ -98,7 +98,7 @@ export default function Profile() {
       </div>
 
       {/* Notifications */}
-      <div className="flex items-center justify-between mb-6 pb-6 ">
+      <div className="flex items-center justify-between mb-6  ">
         <Label htmlFor="notifications">Receive Study Reminders</Label>
         <Switch
           id="notifications"
