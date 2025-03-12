@@ -62,10 +62,10 @@ const Sidebar = () => {
     <>
       {/* Toggle Button - Only visible on mobile and disappears when sidebar is open */}
       {!isOpen && (
-        <div className="max-h-screen w-[30px] bg-gray-100 md:hidden">
+        <div className="max-h-screen w-[30px] bg-gray-100 items-center border-r-2 border-gray-200 md:hidden">
           <button
             onClick={handleToggleClick}
-            className="fixed top-2 p-4 rounded-md md:hidden"
+            className="fixed top-2 justify-center rounded-md md:hidden"
           >
             <Menu className="w-6 h-6" />
           </button>
