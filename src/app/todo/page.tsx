@@ -469,7 +469,7 @@ const TodoList: React.FC = () => {
             <div className="space-y-2">
               <Progress value={completionRate} className="h-2" />
               <div className="text-xs text-gray-500">
-                You&oposve completed {completedTasks} of {totalTasks} tasks (
+                You have completed {completedTasks} of {totalTasks} tasks (
                 {Math.round(completionRate)}%)
               </div>
             </div>
