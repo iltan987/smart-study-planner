@@ -44,6 +44,7 @@ export const register: RegisterFunction = async (credentials) => {
         email,
         password: hashedPassword,
         name,
+        profile: { create: {} },
       },
       select: {
         id: true,

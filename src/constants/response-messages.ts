@@ -10,11 +10,12 @@ export const RESPONSE_MESSAGES_SUCCESS = {
   REGISTER_SUCCESS: 'User registered successfully',
   LOGIN_SUCCESS: 'Logged in successfully',
   LOGOUT_SUCCESS: 'Logged out successfully',
-  UPDATE_SUCCESS: 'User updated successfully',
   SESSION_SUCCESS: 'Session retrieved successfully',
   USER_SUCCESS: 'User retrieved successfully',
   MESSAGE_SUCCESS: 'Message saved successfully',
   MESSAGE_SENT_SUCCESS: 'Message sent successfully',
+  PROFILE_RETRIEVED_SUCCESS: 'Profile retrieved successfully',
+  PROFILE_UPDATE_SUCCESS: 'Profile updated successfully',
 };
 
 export const RESPONSE_MESSAGES = {
