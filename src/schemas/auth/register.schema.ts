@@ -17,8 +17,8 @@ export const registerSchema = z
         message: 'Email is required',
       })
       .trim()
-      .toLowerCase()
       .nonempty({ message: 'Email is required' })
+      .toLowerCase()
       .email({ message: 'Invalid email address' }),
     password: z
       .string({

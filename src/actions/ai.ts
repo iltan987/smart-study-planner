@@ -1,7 +1,7 @@
 'use server';
 
 import { messageSchema, type MessageSchema } from '@/schemas/message.schema';
-import type { Response } from '@/types/response';
+import type { Response } from '@/types/response.type';
 import gemini from '@/lib/gemini';
 import { getUserChatHistory, saveMessage } from './message.action';
 import { RESPONSE_MESSAGES_SUCCESS } from '@/constants/response-messages';

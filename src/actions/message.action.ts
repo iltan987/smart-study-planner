@@ -3,7 +3,7 @@
 import { RESPONSE_MESSAGES_SUCCESS } from '@/constants/response-messages';
 import prisma from '@/lib/db';
 import { messageSchema, type MessageSchema } from '@/schemas/message.schema';
-import type { Response } from '@/types/response';
+import type { Response } from '@/types/response.type';
 
 type SaveMessageFunction = (
   userId: string,

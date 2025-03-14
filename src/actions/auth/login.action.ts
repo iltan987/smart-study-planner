@@ -1,6 +1,6 @@
 'use server';
 
-import type { Response } from '@/types/response';
+import type { Response } from '@/types/response.type';
 import { type LoginSchema } from '@/schemas/auth/login.schema';
 import { signIn } from '@/lib/auth';
 import { RESPONSE_MESSAGES } from '@/constants/response-messages';

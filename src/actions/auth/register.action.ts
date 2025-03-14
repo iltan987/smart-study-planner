@@ -2,7 +2,7 @@
 
 import { hashPassword } from '@/utils/crypto.util';
 import { RESPONSE_MESSAGES } from '@/constants/response-messages';
-import type { Response } from '@/types/response';
+import type { Response } from '@/types/response.type';
 import {
   registerSchema,
   type RegisterSchema,
