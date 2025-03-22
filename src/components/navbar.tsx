@@ -1,6 +1,6 @@
-import { SidebarTrigger } from '@/components/ui/sidebar';
-import { usePathname } from 'next/navigation';
 import { navigationItems, userNavigationItems } from '@/config/navigation';
+import { usePathname } from 'next/navigation';
+import { SidebarTrigger } from './ui/sidebar';
 
 export function Navbar() {
   const pathname = usePathname();

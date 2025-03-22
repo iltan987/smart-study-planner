@@ -1,5 +1,5 @@
-import { z } from 'zod';
 import { Gender, Language } from '@prisma/client';
+import { z } from 'zod';
 import { educationInfoSchema } from './education-info.schema';
 
 export const profileSchema = z.object({

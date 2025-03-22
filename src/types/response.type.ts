@@ -1,4 +1,4 @@
-import type { ZodTypeAny, typeToFlattenedError, TypeOf } from 'zod';
+import type { TypeOf, ZodTypeAny, typeToFlattenedError } from 'zod';
 
 export type ValidationError<T extends TypeOf<ZodTypeAny>> =
   typeToFlattenedError<T>;

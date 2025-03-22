@@ -1,9 +1,9 @@
 'use client';
 
-import { SidebarProvider } from '@/components/ui/sidebar';
-import { Sidebar } from '@/components/sidebar';
 import { usePathname } from 'next/navigation';
 import { Navbar } from './navbar';
+import { Sidebar } from './sidebar';
+import { SidebarProvider } from './ui/sidebar';
 
 const AuthPages = ['/login', '/register'];
 

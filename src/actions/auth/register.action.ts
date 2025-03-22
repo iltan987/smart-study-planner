@@ -1,13 +1,13 @@
 'use server';
 
-import { hashPassword } from '@/utils/crypto.util';
 import { RESPONSE_MESSAGES } from '@/constants/response-messages';
-import type { Response } from '@/types/response.type';
 import {
   registerSchema,
   type RegisterSchema,
 } from '@/schemas/auth/register.schema';
-import { getUserByEmail, createUser } from '@/utils/user.util';
+import type { Response } from '@/types/response.type';
+import { hashPassword } from '@/utils/crypto.util';
+import { createUser, getUserByEmail } from '@/utils/user.util';
 
 type RegisterFunction = (
   credentials: RegisterSchema

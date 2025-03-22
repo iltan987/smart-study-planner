@@ -1,26 +1,18 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormDescription,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { register } from '@/actions/auth/register.action';
 import {
   type RegisterSchema,
   registerSchema,
 } from '@/schemas/auth/register.schema';
-import { useTransition } from 'react';
-import { register } from '@/actions/auth/register.action';
-import { useRouter } from 'next/navigation';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { signIn } from 'next-auth/react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useTransition } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import { Button } from '../ui/button';
 import {
   Card,
   CardContent,
@@ -28,8 +20,16 @@ import {
   CardHeader,
   CardTitle,
 } from '../ui/card';
-import { toast } from 'sonner';
-import { signIn } from 'next-auth/react';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '../ui/form';
+import { Input } from '../ui/input';
 
 export function RegisterForm() {
   const [isPending, startTransition] = useTransition();

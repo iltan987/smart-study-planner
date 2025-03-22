@@ -1,8 +1,8 @@
-import { AuthProvider } from '@/providers/auth-provider';
-import './globals.css';
 import MainLayout from '@/components/main-layout';
-import { ThemeProvider } from '@/providers/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
+import { AuthProvider } from '@/providers/auth-provider';
+import { ThemeProvider } from '@/providers/theme-provider';
+import './globals.css';
 
 const RootLayout = ({
   children,

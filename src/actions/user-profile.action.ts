@@ -1,16 +1,16 @@
 'use server';
 
+import { RESPONSE_MESSAGES } from '@/constants/response-messages';
 import prisma from '@/lib/db';
-import type { Response } from '@/types/response.type';
 import {
   updateUserProfileSchema,
   type UpdateUserProfileSchema,
   userProfileSchema,
   type UserProfileSchema,
 } from '@/schemas/user-profile.schema';
-import { withAuth } from '@/utils/withAuth';
-import { RESPONSE_MESSAGES } from '@/constants/response-messages';
+import type { Response } from '@/types/response.type';
 import { hashPassword } from '@/utils/crypto.util';
+import { withAuth } from '@/utils/withAuth';
 
 type GetProfileFunction = () => Promise<Response<undefined, UserProfileSchema>>;
 
