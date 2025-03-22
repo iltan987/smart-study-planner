@@ -15,6 +15,7 @@ export const updateUserProfileSchema = z
   .object({
     name: z.string().trim().nonempty().optional(),
     email: z.string().trim().nonempty().email().toLowerCase().optional(),
+    currentPassword: z.string().optional(),
     password: z
       .string()
       .min(8)
@@ -30,19 +31,13 @@ export const updateUserProfileSchema = z
     message: 'Passwords do not match',
     path: ['confirmPassword'],
   })
-  .transform((data, ctx) => {
-    if (data.password) {
-      if (data.password !== data.confirmPassword) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Passwords do not match',
-        });
-        return z.NEVER;
-      }
-
-      data.confirmPassword = undefined;
-    }
-    return data;
+  .refine((data) => !data.password || data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  })
+  .refine((data) => !data.password || data.currentPassword, {
+    message: 'Current password is required',
+    path: ['currentPassword'],
   });
 
 export type UserProfileSchema = z.infer<typeof userProfileSchema>;

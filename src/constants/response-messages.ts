@@ -4,6 +4,7 @@ export const RESPONSE_MESSAGES_ERRORS = {
   INTERNAL_SERVER_ERROR: 'Internal server error',
   UNAUTHORIZED: 'Unauthorized',
   USER_NOT_FOUND: 'User not found',
+  INVALID_PASSWORD: 'Invalid current password',
 };
 
 export const RESPONSE_MESSAGES_SUCCESS = {

@@ -53,11 +53,11 @@ export const getUserProfile: GetProfileFunction = async () =>
     };
   });
 
-type UpsertProfileFunction = (
+type UpdateProfileFunction = (
   data: UpdateUserProfileSchema
 ) => Promise<Response<UpdateUserProfileSchema, UserProfileSchema>>;
 
-export const upsertUserProfile: UpsertProfileFunction = async (data) =>
+export const updateUserProfile: UpdateProfileFunction = async (data) =>
   await withAuth(async (session) => {
     if (!session) {
       return { success: false, error: RESPONSE_MESSAGES.UNAUTHORIZED };
@@ -71,9 +71,20 @@ export const upsertUserProfile: UpsertProfileFunction = async (data) =>
 
     const { profile, ...userData } = parsedData.data;
 
-    if (userData.password) {
-      const hashedPassword = await hashPassword(userData.password);
-      userData.password = hashedPassword;
+    if (userData.password && userData.currentPassword) {
+      const res = await prisma.user.findUnique({
+        where: {
+          id: session.user.id,
+          password: await hashPassword(userData.currentPassword),
+        },
+        select: {
+          id: true,
+        },
+      });
+      if (!res) {
+        return { success: false, error: RESPONSE_MESSAGES.INVALID_PASSWORD };
+      }
+      userData.password = await hashPassword(userData.password);
     }
 
     const omitInclude = {
