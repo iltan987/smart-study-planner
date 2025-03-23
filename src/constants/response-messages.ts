@@ -4,6 +4,7 @@ export const RESPONSE_MESSAGES_ERRORS = {
   INTERNAL_SERVER_ERROR: 'Internal server error',
   UNAUTHORIZED: 'Unauthorized',
   USER_NOT_FOUND: 'User not found',
+  INVALID_MESSAGE_TYPE: 'Invalid message type',
   INVALID_PASSWORD: 'Invalid current password',
 };
 
@@ -13,8 +14,11 @@ export const RESPONSE_MESSAGES_SUCCESS = {
   LOGOUT_SUCCESS: 'Logged out successfully',
   SESSION_SUCCESS: 'Session retrieved successfully',
   USER_SUCCESS: 'User retrieved successfully',
-  MESSAGE_SUCCESS: 'Message saved successfully',
+  /* Message related responses */
+  MESSAGE_SAVED_SUCCESS: 'Message saved successfully',
   MESSAGE_SENT_SUCCESS: 'Message sent successfully',
+  MESSAGES_RETRIEVED_SUCCESS: 'Messages retrieved successfully',
+  /* Profile related responses */
   PROFILE_RETRIEVED_SUCCESS: 'Profile retrieved successfully',
   PROFILE_UPDATE_SUCCESS: 'Profile updated successfully',
 };
