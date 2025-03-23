@@ -21,11 +21,13 @@ const MainLayout = ({
         children
       ) : (
         <SidebarProvider>
-          <div className="flex min-h-screen">
+          <div className="flex h-screen overflow-hidden">
             <Sidebar />
-            <div className="flex-1">
+            <div className="flex flex-col flex-1 h-full">
               <Navbar />
-              <main className="p-4">{children}</main>
+              <div className="flex-1 overflow-hidden">
+                <main className="h-full">{children}</main>
+              </div>
             </div>
           </div>
         </SidebarProvider>
