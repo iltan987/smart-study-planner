@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const memorySchema = z.object({
-  memories: z.array(z.string()).nonempty('Memory cannot be empty.'),
+  content: z.string().nonempty(),
 });
 
 export type MemorySchema = z.infer<typeof memorySchema>;
