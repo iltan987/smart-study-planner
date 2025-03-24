@@ -9,14 +9,15 @@ datasource db {
 
 model User {
   id            String    @id @default(cuid())
-  name          String?
+  name          String
   email         String    @unique
-  password      String?
+  password      String
   emailVerified DateTime?
   image         String?
   accounts      Account[]
   memory        Memory[]
   history       History[]
+  profile       Profile?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -44,28 +45,110 @@ model Account {
 }
 
 model Memory {
-  id        String   @id @default(cuid())
-  userId    String
-  content   String
+  id      String @id @default(cuid())
+  userId  String
+  content String
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-enum OwnerType {
-  user
-  model
+enum Role {
+  USER
+  MODEL
 }
 
 model History {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   userId    String
-  content   String
-  owner     OwnerType @default(user)
-  time      DateTime
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  contentId String   @unique
+  role      Role     @default(USER)
+  time      DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@index([userId, time])
+}
+
+enum HistoryRole {
+  USER
+  MODEL
+}
+
+model Content {
+  id                      String                   @id @default(cuid())
+  type                    ContentType
+  textContent             TextContent?
+  functionCallContent     FunctionCallContent?
+  functionResponseContent FunctionResponseContent?
+  History                 History?
+}
+
+enum ContentType {
+  TEXT
+  FUNCTION_CALL
+  FUNCTION_RESPONSE
+}
+
+model TextContent {
+  id        String  @id @default(cuid())
+  text      String
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  contentId String  @unique
+}
+
+model FunctionCallContent {
+  id        String  @id @default(cuid())
+  name      String
+  args      Json
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  contentId String  @unique
+}
+
+model FunctionResponseContent {
+  id        String  @id @default(cuid())
+  name      String
+  response  Json
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  contentId String  @unique
+}
+
+enum Language {
+  EN
+  TR
+  FA
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+model Profile {
+  gender    Gender?
+  dob       DateTime?       @db.Date
+  language  Language        @default(EN)
+  education EducationInfo[]
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @id
+}
+
+model EducationInfo {
+  id     String   @id @default(cuid())
+  school String
+  degree String
+  field  String
+  start  DateTime @db.Date
+  gpa    Float
+
+  profile       Profile @relation(fields: [profileUserId], references: [userId], onDelete: Cascade)
+  profileUserId String
 }

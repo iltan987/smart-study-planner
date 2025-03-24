@@ -1,7 +1,7 @@
-import NextAuth from 'next-auth';
 import authConfig from '@/config/auth.config';
+import { RESPONSE_MESSAGES_ERRORS } from '@/constants/response-messages';
+import NextAuth from 'next-auth';
 import { NextResponse } from 'next/server';
-import { RESPONSE_MESSAGES_ERRORS } from './constants/response-messages';
 
 const { auth } = NextAuth(authConfig);
 

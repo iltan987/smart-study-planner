@@ -1,4 +1,4 @@
-import { Calendar, Home, Settings, List, User, BotIcon } from 'lucide-react';
+import { BotIcon, Calendar, Home, List, Settings, User } from 'lucide-react';
 
 export const navigationItems = [
   {

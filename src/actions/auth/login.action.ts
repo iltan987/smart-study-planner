@@ -1,10 +1,10 @@
 'use server';
 
-import type { Response } from '@/types/response';
-import { type LoginSchema } from '@/schemas/auth/login.schema';
-import { signIn } from '@/lib/auth';
 import { RESPONSE_MESSAGES } from '@/constants/response-messages';
 import { InvalidCredentialsError } from '@/errors/InvalidCredentialsError';
+import { signIn } from '@/lib/auth';
+import { type LoginSchema } from '@/schemas/auth/login.schema';
+import type { Response } from '@/types/response.type';
 
 type LoginFunction = (
   credentials: LoginSchema

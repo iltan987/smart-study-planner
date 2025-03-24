@@ -1,5 +1,13 @@
 'use client';
 
+import { navigationItems } from '@/config/navigation';
+import { RESPONSE_MESSAGES_SUCCESS } from '@/constants/response-messages';
+import { signOut } from 'next-auth/react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { NavUser } from './nav-user';
+import { ThemeToggle } from './theme-toggle';
 import {
   Sidebar as SidebarComponent,
   SidebarContent,
@@ -10,16 +18,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from '@/components/ui/sidebar';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { NavUser } from './nav-user';
-import { ThemeToggle } from './theme-toggle';
-import { navigationItems } from '@/config/navigation';
-import { toast } from 'sonner';
-import { RESPONSE_MESSAGES_SUCCESS } from '@/constants/response-messages';
-import { signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+} from './ui/sidebar';
 
 export function Sidebar() {
   const { setOpenMobile } = useSidebar();

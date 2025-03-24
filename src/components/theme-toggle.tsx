@@ -1,17 +1,16 @@
 'use client';
 
-import * as React from 'react';
 import { Laptop, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
+import { Button } from './ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { SidebarMenuButton } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
+} from './ui/dropdown-menu';
+import { SidebarMenuButton } from './ui/sidebar';
 
 export function ThemeToggle({ isSidebar = true }: { isSidebar?: boolean }) {
   const { setTheme } = useTheme();

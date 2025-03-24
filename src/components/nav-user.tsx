@@ -2,7 +2,9 @@
 
 import { ChevronsUpDown, LogOut, User } from 'lucide-react';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,11 +13,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { SidebarMenuButton, useSidebar } from '@/components/ui/sidebar';
-import { Skeleton } from '@/components/ui/skeleton';
-import Link from 'next/link';
-import { useSession } from 'next-auth/react';
+} from './ui/dropdown-menu';
+import { SidebarMenuButton, useSidebar } from './ui/sidebar';
+import { Skeleton } from './ui/skeleton';
 
 function getInitials(name: string): string {
   if (!name) return '';
