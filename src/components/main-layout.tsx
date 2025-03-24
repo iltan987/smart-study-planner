@@ -21,7 +21,7 @@ const MainLayout = ({
         children
       ) : (
         <SidebarProvider>
-          <div className="flex h-screen overflow-hidden">
+          <div className="flex h-screen w-full overflow-hidden">
             <Sidebar />
             <div className="flex flex-col flex-1 h-full">
               <Navbar />
