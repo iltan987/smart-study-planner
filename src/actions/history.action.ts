@@ -219,7 +219,6 @@ export const saveTextMessage: SaveTextMessageFunction = async (message) =>
         role: parsedMessage.data.role,
         time: parsedMessage.data.time.toISOString(),
         content: parsedMessage.data.content.textContent.text,
-        type: ContentType.TEXT,
       }
     );
 
@@ -286,7 +285,6 @@ export const saveFunctionCallMessage: SaveFunctionCallMessageFunction = async (
         content_args: JSON.stringify(
           parsedMessage.data.content.functionCallContent.args
         ),
-        type: ContentType.FUNCTION_CALL,
       }
     );
 
@@ -352,7 +350,6 @@ export const saveFunctionResponseMessage: SaveFunctionResponseMessageFunction =
           content_response: JSON.stringify(
             parsedMessage.data.content.functionResponseContent.response
           ),
-          type: ContentType.FUNCTION_RESPONSE,
         }
       );
 

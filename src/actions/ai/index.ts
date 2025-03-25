@@ -4,6 +4,7 @@ import { RESPONSE_MESSAGES } from '@/constants/response-messages';
 import { getGeminiModel } from '@/lib/gemini';
 import {
   type FunctionCallContentOnlyHistorySchema,
+  type FunctionResponseContentOnlyHistorySchema,
   textContentOnlyHistorySchema,
   type TextContentOnlyHistorySchema,
 } from '@/schemas/history.schema';
@@ -20,6 +21,7 @@ import type { Session } from 'next-auth';
 import {
   getFullHistory,
   saveFunctionCallMessage,
+  saveFunctionResponseMessage,
   saveTextMessage,
 } from '../history.action';
 import { getUserProfile } from '../user-profile.action';
@@ -188,9 +190,11 @@ const executeResponse = async (
   );
 
   const newResponse = await chat.sendMessage(
-    funcResponses.map((functionResponse) => ({
-      functionResponse,
-    }))
+    funcResponses
+      .filter((resp) => resp !== undefined)
+      .map((functionResponse) => ({
+        functionResponse,
+      }))
   );
 
   return await executeResponse(chat, newResponse.response, userId);
@@ -199,12 +203,16 @@ const executeResponse = async (
 const makeFunctionCall = async (
   funcCall: FunctionCall,
   userId: string
-): Promise<FunctionResponse> => {
+): Promise<FunctionResponse | undefined> => {
+  let resp: FunctionResponse | undefined;
   if (funcCall.name === saveUserInfo.name) {
     saveFunctionCall(funcCall);
-    return saveUserInfo(funcCall, userId);
+    resp = await saveUserInfo(funcCall, userId);
   }
-  throw new Error('Function not found');
+  if (resp) {
+    saveFunctionResponse(resp);
+  }
+  return resp;
 };
 
 const saveFunctionCall = async (funcCall: FunctionCall) => {
@@ -218,4 +226,17 @@ const saveFunctionCall = async (funcCall: FunctionCall) => {
   };
 
   saveFunctionCallMessage(functionCall);
+};
+
+const saveFunctionResponse = async (funcResponse: FunctionResponse) => {
+  const functionResponse: FunctionResponseContentOnlyHistorySchema = {
+    content: {
+      type: ContentType.FUNCTION_RESPONSE,
+      functionResponseContent: funcResponse,
+    },
+    role: 'MODEL',
+    time: new Date(),
+  };
+
+  saveFunctionResponseMessage(functionResponse);
 };
