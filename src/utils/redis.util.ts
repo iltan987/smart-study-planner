@@ -1,6 +1,7 @@
 import redisClient from '@/lib/redis';
 import { type HistorySchema, historySchema } from '@/schemas/history.schema';
 import { ContentType } from '@prisma/client';
+import 'server-only';
 
 export async function getTextHistory(userId: string) {
   const historyEntries: HistorySchema[] = [];
