@@ -58,36 +58,8 @@ model Memory {
 enum Role {
   USER
   MODEL
-}
-
-model History {
-  id        String   @id @default(cuid())
-  userId    String
-  contentId String   @unique
-  role      Role     @default(USER)
-  time      DateTime @default(now())
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
-
-  @@index([userId, time])
-}
-
-enum HistoryRole {
-  USER
-  MODEL
-}
-
-model Content {
-  id                      String                   @id @default(cuid())
-  type                    ContentType
-  textContent             TextContent?
-  functionCallContent     FunctionCallContent?
-  functionResponseContent FunctionResponseContent?
-  History                 History?
+  FUNCTION
+  SYSTEM
 }
 
 enum ContentType {
@@ -96,27 +68,31 @@ enum ContentType {
   FUNCTION_RESPONSE
 }
 
-model TextContent {
-  id        String  @id @default(cuid())
-  text      String
-  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  contentId String  @unique
-}
+model History {
+  id     String @id @default(cuid())
+  userId String
 
-model FunctionCallContent {
-  id        String  @id @default(cuid())
-  name      String
-  args      Json
-  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  contentId String  @unique
-}
+  type ContentType
 
-model FunctionResponseContent {
-  id        String  @id @default(cuid())
-  name      String
-  response  Json
-  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  contentId String  @unique
+  // TextContent fields
+  role Role?
+  text String?
+
+  // FunctionCallContent fields
+  name String?
+  args Json?   @default("{}")
+
+  // FunctionResponseContent fields
+  response Json? @default("{}")
+
+  time DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, time])
 }
 
 enum Language {
