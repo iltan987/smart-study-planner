@@ -9,6 +9,7 @@ import {
   type TextContentOnlyHistorySchema,
 } from '@/schemas/history.schema';
 import type { Response } from '@/types/response.type';
+import { getMemory } from '@/utils/memory.util';
 import type {
   ChatSession,
   FunctionCall,
@@ -58,7 +59,13 @@ export const sendMessage: SendMessageFunction = async (session, message) => {
     content: parsedMessage.data.content,
   };
 
-  const history = await getFullHistory();
+  // Run `getFullHistory`, `getUserProfile` and `getMemory` in parallel
+  const [history, userProfile, memory] = await Promise.all([
+    getFullHistory(),
+    getUserProfile(),
+    getMemory(userId),
+  ]);
+
   if (!history.success) {
     return {
       success: false,
@@ -67,7 +74,6 @@ export const sendMessage: SendMessageFunction = async (session, message) => {
   }
   const chatHistory = history.data;
 
-  const userProfile = await getUserProfile();
   if (!userProfile.success) {
     return {
       success: false,
@@ -82,7 +88,18 @@ export const sendMessage: SendMessageFunction = async (session, message) => {
 
   const educationWithoutId = education.map(({ id: _, ...rest }) => rest);
 
-  saveTextMessage(textMessage);
+  if (!memory.success) {
+    return {
+      success: false,
+      error: memory.error.flatten(),
+    };
+  }
+  const { data: userMemory } = memory;
+
+  const userMemoryContents = userMemory.map((f) => f.content);
+
+  // Save the text message independently
+  const saveTextMessagePromise = saveTextMessage(textMessage);
 
   const chat = getGeminiModel().startChat({
     systemInstruction: {
@@ -96,6 +113,8 @@ Today is ${new Date().toLocaleDateString()}.
 Current time is ${new Date().toLocaleTimeString()}.
 Given date is in timezone GMT${new Date().getTimezoneOffset() > 0 ? '-' : '+'}${Math.abs(new Date().getTimezoneOffset() / 60)}.
 Analyze user text style using the chat history and try to respond accordingly.
+
+User profile: ${JSON.stringify({ ...userData, ...userProfileData, education: educationWithoutId })}
 
 When a user provides information that could be useful for future interactions, you should save it to the user's profile using the 'saveUserInfo' function.
 Examples of valuable information include:
@@ -121,7 +140,7 @@ You: (Calls saveUserInfo with content='Loves playing tennis.')
 
 All memory entries should be stored in English.
 
-User profile: ${JSON.stringify({ ...userData, ...userProfileData, education: educationWithoutId })}`,
+User memory: ${JSON.stringify(userMemoryContents)}`,
         },
       ],
     },
@@ -166,7 +185,9 @@ User profile: ${JSON.stringify({ ...userData, ...userProfileData, education: edu
     time: new Date(),
   };
 
-  saveTextMessage(modelResponse);
+  // Wait for both save operations to complete
+  await Promise.all([saveTextMessagePromise, saveTextMessage(modelResponse)]);
+
   return {
     success: true,
     message: RESPONSE_MESSAGES.MESSAGE_SENT_SUCCESS,
@@ -176,28 +197,34 @@ User profile: ${JSON.stringify({ ...userData, ...userProfileData, education: edu
 
 const executeResponse = async (
   chat: ChatSession,
-  response: GenerateContentResult['response'],
+  initialResponse: GenerateContentResult['response'],
   userId: string
 ) => {
-  const functionCalls = response.functionCalls();
+  let currentResponse = initialResponse;
 
-  if (!functionCalls) {
-    return response;
+  while (true) {
+    const functionCalls = currentResponse.functionCalls();
+
+    if (!functionCalls || functionCalls.length === 0) {
+      break;
+    }
+
+    const funcResponses = await Promise.all(
+      functionCalls.map((funcCall) => makeFunctionCall(funcCall, userId))
+    );
+
+    currentResponse = await chat
+      .sendMessage(
+        funcResponses
+          .filter((resp) => resp !== undefined)
+          .map((functionResponse) => ({
+            functionResponse,
+          }))
+      )
+      .then((response) => response.response);
   }
 
-  const funcResponses = await Promise.all(
-    functionCalls.map((funcCall) => makeFunctionCall(funcCall, userId))
-  );
-
-  const newResponse = await chat.sendMessage(
-    funcResponses
-      .filter((resp) => resp !== undefined)
-      .map((functionResponse) => ({
-        functionResponse,
-      }))
-  );
-
-  return await executeResponse(chat, newResponse.response, userId);
+  return currentResponse;
 };
 
 const makeFunctionCall = async (

@@ -21,6 +21,8 @@ export const RESPONSE_MESSAGES_SUCCESS = {
   /* Profile related responses */
   PROFILE_RETRIEVED_SUCCESS: 'Profile retrieved successfully',
   PROFILE_UPDATE_SUCCESS: 'Profile updated successfully',
+  MEMORY_CREATED: 'Memory created successfully',
+  MEMORY_RETRIEVED: 'Memory retrieved successfully',
 };
 
 export const RESPONSE_MESSAGES = {
