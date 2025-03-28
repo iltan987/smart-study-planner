@@ -22,7 +22,7 @@ export const getGeminiModel = (): GenerativeModel => {
   }
 
   const genAI = new GoogleGenerativeAI(API_KEY);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-001' });
 
   if (process.env.NODE_ENV !== 'production') {
     globalForGemini.geminiModel = model;
