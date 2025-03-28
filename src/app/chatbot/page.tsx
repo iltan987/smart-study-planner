@@ -6,7 +6,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { type TextContentOnlyHistorySchema } from '@/schemas/history.schema';
+import { type TextContentSchema } from '@/schemas/history.schema';
 import { Role } from '@prisma/client';
 import { Bot, Send } from 'lucide-react';
 import { useSession } from 'next-auth/react';
@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 export default function ChatBotPage() {
-  const [messages, setMessages] = useState<TextContentOnlyHistorySchema[]>([]);
+  const [messages, setMessages] = useState<TextContentSchema[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -48,9 +48,10 @@ export default function ChatBotPage() {
     if (!isAuthenticated) return;
     if (!inputValue.trim()) return;
 
-    const userMessage: TextContentOnlyHistorySchema = {
+    const userMessage: TextContentSchema = {
       role: Role.USER,
-      content: { type: 'TEXT', textContent: { text: inputValue } },
+      type: 'TEXT',
+      text: inputValue,
       time: new Date(),
     };
 
@@ -65,12 +66,8 @@ export default function ChatBotPage() {
         setMessages((prev) => [
           ...prev,
           {
-            content: {
-              textContent: {
-                text: response.data,
-              },
-              type: 'TEXT',
-            },
+            text: response.data,
+            type: 'TEXT',
             role: Role.MODEL,
             time: new Date(),
           },
@@ -147,7 +144,7 @@ export default function ChatBotPage() {
                           : 'text-accent-foreground'
                       }`}
                     >
-                      {msg.content.textContent.text}
+                      {msg.text}
                     </p>
                     <p
                       className={`text-xs mt-1 ${
