@@ -2,25 +2,26 @@
 
 import { RESPONSE_MESSAGES } from '@/constants/response-messages';
 import prisma from '@/lib/db';
-import redisClient from '@/lib/redis';
 import {
-  type FunctionCallContentOnlyHistorySchema,
-  type FunctionResponseContentOnlyHistorySchema,
+  functionCallContentSchema,
+  type FunctionCallContentSchema,
+  functionResponseContentSchema,
+  type FunctionResponseContentSchema,
   type HistorySchema,
-  type TextContentOnlyHistorySchema,
-  functionCallContentOnlyHistorySchema,
-  functionResponseContentOnlyHistorySchema,
   historySchema,
-  textContentOnlyHistorySchema,
+  textContentSchema,
+  type TextContentSchema,
 } from '@/schemas/history.schema';
 import { type Response } from '@/types/response.type';
 import {
   getFunctionCallHistory,
   getFunctionResponseHistory,
   getTextHistory as getRedisTextHistory,
+  saveFunctionCallHistory,
+  saveFunctionResponseHistory,
+  saveTextHistory,
 } from '@/utils/redis.util';
 import { withAuth } from '@/utils/withAuth';
-import { ContentType } from '@prisma/client';
 
 type GetFullHistoryFunction = () => Promise<
   Response<undefined, HistorySchema[]>
@@ -58,58 +59,8 @@ export const getFullHistory: GetFullHistoryFunction = async () =>
     };
   });
 
-// export const getFullHistory: GetFullHistoryFunction = async () =>
-//   await withAuth(async (session) => {
-//     if (!session) {
-//       return { success: false, error: RESPONSE_MESSAGES.UNAUTHORIZED };
-//     }
-//     const historyEntries = await prisma.history.findMany({
-//       where: {
-//         userId: session.user.id,
-//       },
-//       include: {
-//         content: {
-//           include: {
-//             textContent: {
-//               omit: {
-//                 contentId: true,
-//                 id: true,
-//               },
-//             },
-//             functionCallContent: {
-//               omit: {
-//                 contentId: true,
-//                 id: true,
-//               },
-//             },
-//             functionResponseContent: {
-//               omit: {
-//                 contentId: true,
-//                 id: true,
-//               },
-//             },
-//           },
-//           omit: {
-//             id: true,
-//           },
-//         },
-//       },
-//       orderBy: { time: 'asc' },
-//       omit: {
-//         id: true,
-//         contentId: true,
-//         userId: true,
-//       },
-//     });
-//     return {
-//       success: true,
-//       data: historySchema.array().parse(historyEntries),
-//       message: RESPONSE_MESSAGES.MESSAGES_RETRIEVED_SUCCESS,
-//     };
-//   });
-
 type GetTextHistoryFunction = () => Promise<
-  Response<undefined, TextContentOnlyHistorySchema[]>
+  Response<undefined, TextContentSchema[]>
 >;
 
 export const getTextHistory: GetTextHistoryFunction = async () =>
@@ -118,114 +69,46 @@ export const getTextHistory: GetTextHistoryFunction = async () =>
       return { success: false, error: RESPONSE_MESSAGES.UNAUTHORIZED };
     }
 
-    const historyEntries: HistorySchema[] = await getRedisTextHistory(
-      session.user.id
-    );
+    const historyEntries = await getRedisTextHistory(session.user.id);
 
     return {
       success: true,
-      data: textContentOnlyHistorySchema
-        .array()
-        .parse(
-          historyEntries.sort((a, b) => a.time.getTime() - b.time.getTime())
-        ),
+      data: historyEntries.sort((a, b) => a.time.getTime() - b.time.getTime()),
       message: RESPONSE_MESSAGES.MESSAGES_RETRIEVED_SUCCESS,
     };
   });
 
-// export const getTextHistory: GetTextHistoryFunction = async () =>
-//   await withAuth(async (session) => {
-//     if (!session) {
-//       return { success: false, error: RESPONSE_MESSAGES.UNAUTHORIZED };
-//     }
-//     const historyEntries = await prisma.history.findMany({
-//       where: {
-//         userId: session.user.id,
-//         content: {
-//           type: ContentType.TEXT,
-//         },
-//       },
-//       include: {
-//         content: {
-//           include: {
-//             textContent: {
-//               omit: {
-//                 contentId: true,
-//                 id: true,
-//               },
-//             },
-//           },
-//           omit: {
-//             id: true,
-//           },
-//         },
-//       },
-//       orderBy: { time: 'asc' },
-//       omit: {
-//         id: true,
-//         contentId: true,
-//         userId: true,
-//       },
-//     });
-//     return {
-//       success: true,
-//       data: textContentOnlyHistorySchema.array().parse(historyEntries),
-//       message: RESPONSE_MESSAGES.MESSAGES_RETRIEVED_SUCCESS,
-//     };
-//   });
-
 type SaveTextMessageFunction = (
-  message: TextContentOnlyHistorySchema
-) => Promise<Response<TextContentOnlyHistorySchema, string>>;
+  message: Omit<TextContentSchema, 'type'>
+) => Promise<Response<TextContentSchema, string>>;
 
 export const saveTextMessage: SaveTextMessageFunction = async (message) =>
   await withAuth(async (session) => {
     if (!session) {
       return { success: false, error: RESPONSE_MESSAGES.UNAUTHORIZED };
     }
-    const parsedMessage = textContentOnlyHistorySchema.safeParse(message);
+    const parsedMessage = textContentSchema.safeParse(message);
 
     if (!parsedMessage.success) {
       return { success: false, error: parsedMessage.error.message };
     }
 
-    const { content, ...rest } = parsedMessage.data;
-
-    const historyEntry = await prisma.history.create({
-      data: {
-        user: {
-          connect: {
-            id: session.user.id,
-          },
-        },
-        ...rest,
-        content: {
-          create: {
-            type: ContentType.TEXT,
-            textContent: {
-              create: content.textContent,
+    const [historyEntry] = await Promise.all([
+      prisma.history.create({
+        data: {
+          user: {
+            connect: {
+              id: session.user.id,
             },
           },
+          ...parsedMessage.data,
         },
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    await redisClient.hSet(
-      `history:${session.user.id}:text:${historyEntry.id}`,
-      {
-        role: parsedMessage.data.role,
-        time: parsedMessage.data.time.toISOString(),
-        content: parsedMessage.data.content.textContent.text,
-      }
-    );
-
-    await redisClient.expire(
-      `history:${session.user.id}:text:${historyEntry.id}`,
-      60 * 60 * 24
-    );
+        select: {
+          id: true,
+        },
+      }),
+      saveTextHistory(session.user.id, parsedMessage.data),
+    ]);
 
     return {
       success: true,
@@ -235,8 +118,8 @@ export const saveTextMessage: SaveTextMessageFunction = async (message) =>
   });
 
 type SaveFunctionCallMessageFunction = (
-  message: FunctionCallContentOnlyHistorySchema
-) => Promise<Response<HistorySchema, string>>;
+  message: Omit<FunctionCallContentSchema, 'type'>
+) => Promise<Response<FunctionCallContentSchema, string>>;
 
 export const saveFunctionCallMessage: SaveFunctionCallMessageFunction = async (
   message
@@ -245,53 +128,28 @@ export const saveFunctionCallMessage: SaveFunctionCallMessageFunction = async (
     if (!session) {
       return { success: false, error: RESPONSE_MESSAGES.UNAUTHORIZED };
     }
-    const parsedMessage =
-      functionCallContentOnlyHistorySchema.safeParse(message);
+    const parsedMessage = functionCallContentSchema.safeParse(message);
 
     if (!parsedMessage.success) {
       return { success: false, error: parsedMessage.error.message };
     }
 
-    const { content, ...rest } = parsedMessage.data;
-
-    const historyEntry = await prisma.history.create({
-      data: {
-        user: {
-          connect: {
-            id: session.user.id,
-          },
-        },
-        ...rest,
-        content: {
-          create: {
-            type: ContentType.FUNCTION_CALL,
-            functionCallContent: {
-              create: content.functionCallContent,
+    const [historyEntry] = await Promise.all([
+      prisma.history.create({
+        data: {
+          user: {
+            connect: {
+              id: session.user.id,
             },
           },
+          ...parsedMessage.data,
         },
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    await redisClient.hSet(
-      `history:${session.user.id}:function_call:${historyEntry.id}`,
-      {
-        role: parsedMessage.data.role,
-        time: parsedMessage.data.time.toISOString(),
-        content_name: parsedMessage.data.content.functionCallContent.name,
-        content_args: JSON.stringify(
-          parsedMessage.data.content.functionCallContent.args
-        ),
-      }
-    );
-
-    await redisClient.expire(
-      `history:${session.user.id}:function_call:${historyEntry.id}`,
-      60 * 60 * 24
-    );
+        select: {
+          id: true,
+        },
+      }),
+      saveFunctionCallHistory(session.user.id, parsedMessage.data),
+    ]);
 
     return {
       success: true,
@@ -301,8 +159,8 @@ export const saveFunctionCallMessage: SaveFunctionCallMessageFunction = async (
   });
 
 type SaveFunctionResponseMessageFunction = (
-  message: FunctionResponseContentOnlyHistorySchema
-) => Promise<Response<HistorySchema, string>>;
+  message: FunctionResponseContentSchema
+) => Promise<Response<FunctionResponseContentSchema, string>>;
 
 export const saveFunctionResponseMessage: SaveFunctionResponseMessageFunction =
   async (message) =>
@@ -310,53 +168,28 @@ export const saveFunctionResponseMessage: SaveFunctionResponseMessageFunction =
       if (!session) {
         return { success: false, error: RESPONSE_MESSAGES.UNAUTHORIZED };
       }
-      const parsedMessage =
-        functionResponseContentOnlyHistorySchema.safeParse(message);
+      const parsedMessage = functionResponseContentSchema.safeParse(message);
 
       if (!parsedMessage.success) {
         return { success: false, error: parsedMessage.error.message };
       }
 
-      const { content, ...rest } = parsedMessage.data;
-
-      const historyEntry = await prisma.history.create({
-        data: {
-          user: {
-            connect: {
-              id: session.user.id,
-            },
-          },
-          ...rest,
-          content: {
-            create: {
-              type: ContentType.FUNCTION_RESPONSE,
-              functionResponseContent: {
-                create: content.functionResponseContent,
+      const [historyEntry] = await Promise.all([
+        prisma.history.create({
+          data: {
+            user: {
+              connect: {
+                id: session.user.id,
               },
             },
+            ...parsedMessage.data,
           },
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      await redisClient.hSet(
-        `history:${session.user.id}:function_response:${historyEntry.id}`,
-        {
-          role: parsedMessage.data.role,
-          time: parsedMessage.data.time.toISOString(),
-          content_name: parsedMessage.data.content.functionResponseContent.name,
-          content_response: JSON.stringify(
-            parsedMessage.data.content.functionResponseContent.response
-          ),
-        }
-      );
-
-      await redisClient.expire(
-        `history:${session.user.id}:function_response:${historyEntry.id}`,
-        60 * 60 * 24
-      );
+          select: {
+            id: true,
+          },
+        }),
+        saveFunctionResponseHistory(session.user.id, parsedMessage.data),
+      ]);
 
       return {
         success: true,
