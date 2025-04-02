@@ -6,6 +6,7 @@ export const RESPONSE_MESSAGES_ERRORS = {
   USER_NOT_FOUND: 'User not found',
   INVALID_MESSAGE_TYPE: 'Invalid message type',
   INVALID_PASSWORD: 'Invalid current password',
+  INVALID_ROLE: 'Invalid role',
 };
 
 export const RESPONSE_MESSAGES_SUCCESS = {

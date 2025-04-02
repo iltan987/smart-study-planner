@@ -3,11 +3,13 @@
 import { RESPONSE_MESSAGES } from '@/constants/response-messages';
 import { getGeminiModel } from '@/lib/gemini';
 import {
-  type FunctionCallContentSchema,
-  type FunctionResponseContentSchema,
-  textContentSchema,
-  type TextContentSchema,
+  type CreateFunctionCallContentSchema,
+  type CreateFunctionResponseContentSchema,
+  createUserTextContentSchema,
+  type CreateUserTextContentSchema,
+  modelTextContentSchema,
 } from '@/schemas/history.schema';
+import { ContentType } from '@/types/content-type.type';
 import type { Response } from '@/types/response.type';
 import { getMemory } from '@/utils/memory.util';
 import { saveTextHistory } from '@/utils/redis.util';
@@ -18,7 +20,7 @@ import type {
   GenerateContentResult,
 } from '@google/generative-ai';
 import { FunctionCallingMode } from '@google/generative-ai';
-import { ContentType, Role } from '@prisma/client';
+import { Role } from '@prisma/client';
 import type { Session } from 'next-auth';
 import {
   getFullHistory,
@@ -32,14 +34,14 @@ import { saveUserInfo } from './function-implementations';
 
 type SendMessageFunction = (
   session: Session,
-  message: TextContentSchema
-) => Promise<Response<TextContentSchema, string>>;
+  message: CreateUserTextContentSchema
+) => Promise<Response<CreateUserTextContentSchema, string>>;
 
 export const sendMessage: SendMessageFunction = async (session, message) => {
   const userId = session.user.id;
   const userName = session.user.name;
 
-  const parsedMessage = textContentSchema.safeParse(message);
+  const parsedMessage = createUserTextContentSchema.safeParse(message);
 
   if (!parsedMessage.success) {
     return {
@@ -98,8 +100,8 @@ export const sendMessage: SendMessageFunction = async (session, message) => {
       role: 'system',
       parts: [
         {
-          text: `You are an AI assistant designed to help students.
-If user ask something not related to school, class, academic life say that you can't help with that. Only respond to specific topics.
+          text: `You are a helpful AI assistant designed to help students.
+If user ask something not related to school, class, academic life say that you can't help with that. Only respond to specific topics. Be friendly and helpful.
 Their name is "${userName}".
 Today is ${new Date().toLocaleDateString()}.
 Current time is ${new Date().toLocaleTimeString()}.
@@ -141,6 +143,12 @@ You: (Calls saveUserInfo with content='Is a Software engineer.')
 
 User: 'I am studying computer science.'
 You: (Calls saveUserInfo with content='Is studying computer science.')
+
+User: 'My birthday is on January 1st.'
+You: (Calls saveUserInfo with content='Birthday is on January 1st.')
+
+User: 'Speak to me in x language.'
+You: (Calls saveUserInfo with content='Prefers to be spoken to in x language.')
 
 All memory entries should be stored in English. Avoid using relative data like 'today', 'now', or 'this week' in the memory content. Instead, use specific dates and times.
 If the user provides information that is not relevant to their profile, you should ignore it and not save it.
@@ -188,15 +196,16 @@ User memory: ${JSON.stringify(userMemoryContents)}`,
 
   const result = await executeResponse(chat, response.response, userId);
 
-  const modelResponse: TextContentSchema = {
-    type: ContentType.TEXT,
+  const modelResponse = {
     text: result.text(),
-    role: 'MODEL',
     time: new Date(),
   };
 
   // Wait for both save operations to complete
-  await Promise.all([saveTextMessagePromise, saveTextMessage(modelResponse)]);
+  await Promise.all([
+    saveTextMessagePromise,
+    saveTextMessage(modelTextContentSchema.parse(modelResponse)),
+  ]);
 
   return {
     success: true,
@@ -260,22 +269,18 @@ const makeFunctionCall = async (
 };
 
 const saveFunctionCall = async (funcCall: FunctionCall) => {
-  const functionCall: FunctionCallContentSchema = {
-    type: ContentType.FUNCTION_CALL,
+  const functionCall: CreateFunctionCallContentSchema = {
     name: funcCall.name,
     args: funcCall.args,
-    time: new Date(),
   };
 
   await saveFunctionCallMessage(functionCall);
 };
 
 const saveFunctionResponse = async (funcResponse: FunctionResponse) => {
-  const functionResponse: FunctionResponseContentSchema = {
-    type: ContentType.FUNCTION_RESPONSE,
+  const functionResponse: CreateFunctionResponseContentSchema = {
     name: funcResponse.name,
     response: funcResponse.response,
-    time: new Date(),
   };
 
   await saveFunctionResponseMessage(functionResponse);

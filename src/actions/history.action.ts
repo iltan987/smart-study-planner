@@ -3,10 +3,10 @@
 import { RESPONSE_MESSAGES } from '@/constants/response-messages';
 import prisma from '@/lib/db';
 import {
-  functionCallContentSchema,
-  type FunctionCallContentSchema,
-  functionResponseContentSchema,
-  type FunctionResponseContentSchema,
+  createFunctionCallContentSchema,
+  type CreateFunctionCallContentSchema,
+  createFunctionResponseContentSchema,
+  type CreateFunctionResponseContentSchema,
   type HistorySchema,
   historySchema,
   textContentSchema,
@@ -101,7 +101,12 @@ export const saveTextMessage: SaveTextMessageFunction = async (message) =>
               id: session.user.id,
             },
           },
-          ...parsedMessage.data,
+          textContent: {
+            create: {
+              text: parsedMessage.data.text,
+              role: parsedMessage.data.role,
+            },
+          },
         },
         select: {
           id: true,
@@ -118,8 +123,8 @@ export const saveTextMessage: SaveTextMessageFunction = async (message) =>
   });
 
 type SaveFunctionCallMessageFunction = (
-  message: Omit<FunctionCallContentSchema, 'type'>
-) => Promise<Response<FunctionCallContentSchema, string>>;
+  message: CreateFunctionCallContentSchema
+) => Promise<Response<CreateFunctionCallContentSchema, string>>;
 
 export const saveFunctionCallMessage: SaveFunctionCallMessageFunction = async (
   message
@@ -128,7 +133,7 @@ export const saveFunctionCallMessage: SaveFunctionCallMessageFunction = async (
     if (!session) {
       return { success: false, error: RESPONSE_MESSAGES.UNAUTHORIZED };
     }
-    const parsedMessage = functionCallContentSchema.safeParse(message);
+    const parsedMessage = createFunctionCallContentSchema.safeParse(message);
 
     if (!parsedMessage.success) {
       return { success: false, error: parsedMessage.error.message };
@@ -142,7 +147,12 @@ export const saveFunctionCallMessage: SaveFunctionCallMessageFunction = async (
               id: session.user.id,
             },
           },
-          ...parsedMessage.data,
+          functionCallContent: {
+            create: {
+              name: parsedMessage.data.name,
+              args: parsedMessage.data.args,
+            },
+          },
         },
         select: {
           id: true,
@@ -159,8 +169,8 @@ export const saveFunctionCallMessage: SaveFunctionCallMessageFunction = async (
   });
 
 type SaveFunctionResponseMessageFunction = (
-  message: FunctionResponseContentSchema
-) => Promise<Response<FunctionResponseContentSchema, string>>;
+  message: CreateFunctionResponseContentSchema
+) => Promise<Response<CreateFunctionResponseContentSchema, string>>;
 
 export const saveFunctionResponseMessage: SaveFunctionResponseMessageFunction =
   async (message) =>
@@ -168,7 +178,8 @@ export const saveFunctionResponseMessage: SaveFunctionResponseMessageFunction =
       if (!session) {
         return { success: false, error: RESPONSE_MESSAGES.UNAUTHORIZED };
       }
-      const parsedMessage = functionResponseContentSchema.safeParse(message);
+      const parsedMessage =
+        createFunctionResponseContentSchema.safeParse(message);
 
       if (!parsedMessage.success) {
         return { success: false, error: parsedMessage.error.message };
@@ -182,7 +193,12 @@ export const saveFunctionResponseMessage: SaveFunctionResponseMessageFunction =
                 id: session.user.id,
               },
             },
-            ...parsedMessage.data,
+            functionResponseContent: {
+              create: {
+                name: parsedMessage.data.name,
+                response: parsedMessage.data.response,
+              },
+            },
           },
           select: {
             id: true,
