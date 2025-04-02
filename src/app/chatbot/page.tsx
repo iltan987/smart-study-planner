@@ -6,7 +6,12 @@ import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { type TextContentSchema } from '@/schemas/history.schema';
+import {
+  createUserTextContentSchema,
+  modelTextContentSchema,
+  userTextContentSchema,
+  type TextContentSchema,
+} from '@/schemas/history.schema';
 import { Role } from '@prisma/client';
 import { Bot, Send } from 'lucide-react';
 import { useSession } from 'next-auth/react';
@@ -48,29 +53,29 @@ export default function ChatBotPage() {
     if (!isAuthenticated) return;
     if (!inputValue.trim()) return;
 
-    const userMessage: TextContentSchema = {
-      role: Role.USER,
-      type: 'TEXT',
+    const userMessage = {
       text: inputValue,
       time: new Date(),
+      timeSent: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userTextContentSchema.parse(userMessage)]);
     setInputValue('');
     setIsLoading(true);
 
     try {
-      const response = await sendMessage(session, userMessage);
+      const response = await sendMessage(
+        session,
+        createUserTextContentSchema.parse(userMessage)
+      );
 
       if (response.success) {
         setMessages((prev) => [
           ...prev,
-          {
+          modelTextContentSchema.parse({
             text: response.data,
-            type: 'TEXT',
-            role: Role.MODEL,
             time: new Date(),
-          },
+          }),
         ]);
       } else {
         console.error('Error sending message:', response.error);
@@ -153,7 +158,10 @@ export default function ChatBotPage() {
                           : 'text-left text-accent-foreground/70'
                       }`}
                     >
-                      {msg.time.toLocaleTimeString([], {
+                      {(msg.role === Role.USER
+                        ? msg.timeSent
+                        : msg.time
+                      ).toLocaleTimeString([], {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
