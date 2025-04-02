@@ -62,37 +62,42 @@ enum Role {
   SYSTEM
 }
 
-enum ContentType {
-  TEXT
-  FUNCTION_CALL
-  FUNCTION_RESPONSE
-}
-
 model History {
   id     String @id @default(cuid())
   userId String
 
-  type ContentType
-
-  // TextContent fields
-  role Role?
-  text String?
-
-  // FunctionCallContent fields
-  name String?
-  args Json?   @default("{}")
-
-  // FunctionResponseContent fields
-  response Json? @default("{}")
-
-  time DateTime @default(now())
+  textContent             TextContent?
+  functionCallContent     FunctionCallContent?
+  functionResponseContent FunctionResponseContent?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
 
-  @@index([userId, time])
+model TextContent {
+  contentId String  @id
+  history   History @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  role Role   @default(USER)
+  text String
+}
+
+model FunctionCallContent {
+  contentId String  @id
+  history   History @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  name String
+  args Json   @default("{}")
+}
+
+model FunctionResponseContent {
+  contentId String  @id
+  history   History @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  name     String
+  response Json   @default("{}")
 }
 
 enum Language {
