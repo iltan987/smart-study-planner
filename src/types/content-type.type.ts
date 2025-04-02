@@ -1,0 +1,5 @@
+export enum ContentType {
+  TEXT = 'TEXT',
+  FUNCTION_CALL = 'FUNCTION_CALL',
+  FUNCTION_RESPONSE = 'FUNCTION_RESPONSE',
+}
