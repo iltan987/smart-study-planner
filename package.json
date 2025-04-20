@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate && flowbite-react patch"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.8.0",
@@ -23,6 +23,7 @@
     "@radix-ui/react-tooltip": "^1.1.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "flowbite-react": "^0.11.7",
     "lucide-react": "^0.483.0",
     "next": "15.2.3",
     "next-auth": "5.0.0-beta.25",
