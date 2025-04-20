@@ -1,3 +1,5 @@
+import StudyPlanner from './CalendarPageContent';
+
 export default function CalendarPage() {
-  return <div>Calendar</div>;
+  return <StudyPlanner />;
 }
