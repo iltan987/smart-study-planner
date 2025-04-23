@@ -1,5 +1,5 @@
+import type { Prisma } from '@/generated/prisma-client';
 import prisma from '@/lib/db';
-import type { Prisma } from '@prisma/client';
 
 type UserFindUniqueOptions = Omit<Prisma.UserFindUniqueArgs, 'where'>;
 type UserUpdateOptions = Omit<Prisma.UserUpdateArgs, 'where' | 'data'>;
