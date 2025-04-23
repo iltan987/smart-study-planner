@@ -1,12 +1,15 @@
 'use server';
 
 import { RESPONSE_MESSAGES } from '@/constants/response-messages';
+import { ContentType, TextContentRole } from '@/generated/prisma-client';
 import { getGeminiModel } from '@/lib/gemini';
 import {
-  type FunctionCallContentOnlyHistorySchema,
-  type FunctionResponseContentOnlyHistorySchema,
-  textContentOnlyHistorySchema,
-  type TextContentOnlyHistorySchema,
+  userTextSchema,
+  type FunctionCallContentSchema,
+  type FunctionResponseContentSchema,
+  type ModelTextSchema,
+  type TextContentSchema,
+  type UserTextSchema,
 } from '@/schemas/history.schema';
 import type { Response } from '@/types/response.type';
 import type {
@@ -16,7 +19,6 @@ import type {
   GenerateContentResult,
 } from '@google/generative-ai';
 import { FunctionCallingMode } from '@google/generative-ai';
-import { ContentType } from '@prisma/client';
 import type { Session } from 'next-auth';
 import {
   getFullHistory,
@@ -30,14 +32,14 @@ import { saveUserInfo } from './function-implementations';
 
 type SendMessageFunction = (
   session: Session,
-  message: TextContentOnlyHistorySchema
-) => Promise<Response<TextContentOnlyHistorySchema, string>>;
+  message: UserTextSchema
+) => Promise<Response<TextContentSchema, { text: string; timeSent: Date }>>;
 
 export const sendMessage: SendMessageFunction = async (session, message) => {
   const userId = session.user.id;
   const userName = session.user.name;
 
-  const parsedMessage = textContentOnlyHistorySchema.safeParse(message);
+  const parsedMessage = userTextSchema.safeParse(message);
 
   if (!parsedMessage.success) {
     return {
@@ -45,18 +47,6 @@ export const sendMessage: SendMessageFunction = async (session, message) => {
       error: parsedMessage.error.flatten(),
     };
   }
-
-  if (parsedMessage.data.content.type !== ContentType.TEXT) {
-    return {
-      success: false,
-      error: RESPONSE_MESSAGES.INVALID_MESSAGE_TYPE,
-    };
-  }
-
-  const textMessage: TextContentOnlyHistorySchema = {
-    ...parsedMessage.data,
-    content: parsedMessage.data.content,
-  };
 
   const history = await getFullHistory();
   if (!history.success) {
@@ -82,7 +72,7 @@ export const sendMessage: SendMessageFunction = async (session, message) => {
 
   const educationWithoutId = education.map(({ id: _, ...rest }) => rest);
 
-  saveTextMessage(textMessage);
+  saveTextMessage(parsedMessage.data);
 
   const chat = getGeminiModel().startChat({
     systemInstruction: {
@@ -126,18 +116,23 @@ User profile: ${JSON.stringify({ ...userData, ...userProfileData, education: edu
       ],
     },
     history: chatHistory.map((msg) => ({
-      role: msg.role.toLowerCase(),
+      role:
+        msg.type === ContentType.text
+          ? msg.role
+          : msg.type === ContentType.function_call
+            ? 'model'
+            : 'function',
       parts: [
-        msg.content.type === ContentType.TEXT
+        msg.type === ContentType.text
           ? {
-              text: msg.content.textContent.text,
+              text: msg.text,
             }
-          : msg.content.type === ContentType.FUNCTION_CALL
+          : msg.type === ContentType.function_call
             ? {
-                functionCall: msg.content.functionCallContent,
+                functionCall: { name: msg.name, args: msg.args },
               }
             : {
-                functionResponse: msg.content.functionResponseContent,
+                functionResponse: { name: msg.name, response: msg.response },
               },
       ],
     })),
@@ -149,28 +144,22 @@ User profile: ${JSON.stringify({ ...userData, ...userProfileData, education: edu
     toolConfig: { functionCallingConfig: { mode: FunctionCallingMode.AUTO } },
   });
 
-  const response = await chat.sendMessage(
-    parsedMessage.data.content.textContent.text
-  );
+  const response = await chat.sendMessage(parsedMessage.data.text);
 
   const result = await executeResponse(chat, response.response, userId);
 
-  const modelResponse: TextContentOnlyHistorySchema = {
-    content: {
-      type: ContentType.TEXT,
-      textContent: {
-        text: result.text(),
-      },
-    },
-    role: 'MODEL',
-    time: new Date(),
+  const modelResponse: ModelTextSchema = {
+    role: TextContentRole.model,
+    type: ContentType.text,
+    text: result.text(),
+    timeSent: new Date(),
   };
 
   saveTextMessage(modelResponse);
   return {
     success: true,
     message: RESPONSE_MESSAGES.MESSAGE_SENT_SUCCESS,
-    data: modelResponse.content.textContent.text,
+    data: { text: modelResponse.text, timeSent: modelResponse.timeSent },
   };
 };
 
@@ -216,26 +205,18 @@ const makeFunctionCall = async (
 };
 
 const saveFunctionCall = async (funcCall: FunctionCall) => {
-  const functionCall: FunctionCallContentOnlyHistorySchema = {
-    content: {
-      type: ContentType.FUNCTION_CALL,
-      functionCallContent: funcCall,
-    },
-    role: 'MODEL',
-    time: new Date(),
+  const functionCall: FunctionCallContentSchema = {
+    type: ContentType.function_call,
+    ...funcCall,
   };
 
   saveFunctionCallMessage(functionCall);
 };
 
 const saveFunctionResponse = async (funcResponse: FunctionResponse) => {
-  const functionResponse: FunctionResponseContentOnlyHistorySchema = {
-    content: {
-      type: ContentType.FUNCTION_RESPONSE,
-      functionResponseContent: funcResponse,
-    },
-    role: 'MODEL',
-    time: new Date(),
+  const functionResponse: FunctionResponseContentSchema = {
+    type: ContentType.function_response,
+    ...funcResponse,
   };
 
   saveFunctionResponseMessage(functionResponse);
