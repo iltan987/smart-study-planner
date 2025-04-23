@@ -56,68 +56,73 @@ model Memory {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-enum Role {
-  USER
-  MODEL
+enum ContentType {
+  text
+  function_call
+  function_response
 }
 
 model History {
-  id        String   @id @default(cuid())
-  userId    String
-  contentId String   @unique
-  role      Role     @default(USER)
-  time      DateTime @default(now())
+  id String @id @default(cuid())
+
+  time DateTime    @default(now())
+  type ContentType
+
+  // --- Polymorphic Relationship Fields ---
+  // Foreign keys to the specific content types.
+  // Only ONE of these should be set for any given History record.
+  // The @unique constraint ensures one content record belongs to at most one history record.
+  textContentId             String? @unique
+  functionCallContentId     String? @unique
+  functionResponseContentId String? @unique
+
+  // --- Relations ---
+  // Optional relations to the specific content models.
+  textContent             TextContent?             @relation(fields: [textContentId], references: [id], onDelete: Cascade)
+  functionCallContent     FunctionCallContent?     @relation(fields: [functionCallContentId], references: [id], onDelete: Cascade)
+  functionResponseContent FunctionResponseContent? @relation(fields: [functionResponseContentId], references: [id], onDelete: Cascade)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
-
-  @@index([userId, time])
+  @@index([type])
+  @@index([time])
 }
 
-enum HistoryRole {
-  USER
-  MODEL
-}
-
-model Content {
-  id                      String                   @id @default(cuid())
-  type                    ContentType
-  textContent             TextContent?
-  functionCallContent     FunctionCallContent?
-  functionResponseContent FunctionResponseContent?
-  History                 History?
-}
-
-enum ContentType {
-  TEXT
-  FUNCTION_CALL
-  FUNCTION_RESPONSE
+enum TextContentRole {
+  user
+  model
 }
 
 model TextContent {
-  id        String  @id @default(cuid())
-  text      String
-  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  contentId String  @unique
+  id       String          @id @default(cuid()) // Unique ID for this text content
+  role     TextContentRole
+  text     String
+  timeSent DateTime
+
+  // Relation back to History (one-to-one optional)
+  history History?
 }
 
 model FunctionCallContent {
-  id        String  @id @default(cuid())
-  name      String
-  args      Json
-  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  contentId String  @unique
+  id   String @id @default(cuid()) // Unique ID for this function call content
+  name String
+  args Json // Prisma's JSON type
+
+  // Relation back to History (one-to-one optional)
+  history History?
 }
 
 model FunctionResponseContent {
-  id        String  @id @default(cuid())
-  name      String
-  response  Json
-  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  contentId String  @unique
+  id       String @id @default(cuid()) // Unique ID for this function response content
+  name     String
+  response Json // Prisma's JSON type
+
+  // Relation back to History (one-to-one optional)
+  history History?
 }
 
 enum Language {
