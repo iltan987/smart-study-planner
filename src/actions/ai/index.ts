@@ -1,14 +1,18 @@
 'use server';
 
 import { RESPONSE_MESSAGES } from '@/constants/response-messages';
+import { ContentType, TextContentRole } from '@/generated/prisma-client';
 import { getGeminiModel } from '@/lib/gemini';
-import {
-  type FunctionCallContentOnlyHistorySchema,
-  type FunctionResponseContentOnlyHistorySchema,
-  textContentOnlyHistorySchema,
-  type TextContentOnlyHistorySchema,
+import type {
+  FunctionCallContentSchema,
+  FunctionResponseContentSchema,
+  ModelTextSchema,
+  TextContentSchema,
+  UserTextSchema,
 } from '@/schemas/history.schema';
+import { userTextSchema } from '@/schemas/history.schema';
 import type { Response } from '@/types/response.type';
+import { getMemory } from '@/utils/memory.util';
 import type {
   ChatSession,
   FunctionCall,
@@ -16,7 +20,6 @@ import type {
   GenerateContentResult,
 } from '@google/generative-ai';
 import { FunctionCallingMode } from '@google/generative-ai';
-import { ContentType } from '@prisma/client';
 import type { Session } from 'next-auth';
 import {
   getFullHistory,
@@ -30,14 +33,14 @@ import { saveUserInfo } from './function-implementations';
 
 type SendMessageFunction = (
   session: Session,
-  message: TextContentOnlyHistorySchema
-) => Promise<Response<TextContentOnlyHistorySchema, string>>;
+  message: UserTextSchema
+) => Promise<Response<TextContentSchema, { text: string; timeSent: Date }>>;
 
 export const sendMessage: SendMessageFunction = async (session, message) => {
   const userId = session.user.id;
   const userName = session.user.name;
 
-  const parsedMessage = textContentOnlyHistorySchema.safeParse(message);
+  const parsedMessage = userTextSchema.safeParse(message);
 
   if (!parsedMessage.success) {
     return {
@@ -46,19 +49,13 @@ export const sendMessage: SendMessageFunction = async (session, message) => {
     };
   }
 
-  if (parsedMessage.data.content.type !== ContentType.TEXT) {
-    return {
-      success: false,
-      error: RESPONSE_MESSAGES.INVALID_MESSAGE_TYPE,
-    };
-  }
+  // Run `getFullHistory`, `getUserProfile` and `getMemory` in parallel
+  const [history, userProfile, memory] = await Promise.all([
+    getFullHistory(),
+    getUserProfile(),
+    getMemory(userId),
+  ]);
 
-  const textMessage: TextContentOnlyHistorySchema = {
-    ...parsedMessage.data,
-    content: parsedMessage.data.content,
-  };
-
-  const history = await getFullHistory();
   if (!history.success) {
     return {
       success: false,
@@ -67,7 +64,6 @@ export const sendMessage: SendMessageFunction = async (session, message) => {
   }
   const chatHistory = history.data;
 
-  const userProfile = await getUserProfile();
   if (!userProfile.success) {
     return {
       success: false,
@@ -82,7 +78,18 @@ export const sendMessage: SendMessageFunction = async (session, message) => {
 
   const educationWithoutId = education.map(({ id: _, ...rest }) => rest);
 
-  saveTextMessage(textMessage);
+  if (!memory.success) {
+    return {
+      success: false,
+      error: memory.error.flatten(),
+    };
+  }
+  const { data: userMemory } = memory;
+
+  const userMemoryContents = userMemory.map((f) => f.content);
+
+  // Save the text message independently
+  const saveTextMessagePromise = saveTextMessage(parsedMessage.data);
 
   const chat = getGeminiModel().startChat({
     systemInstruction: {
@@ -96,6 +103,8 @@ Today is ${new Date().toLocaleDateString()}.
 Current time is ${new Date().toLocaleTimeString()}.
 Given date is in timezone GMT${new Date().getTimezoneOffset() > 0 ? '-' : '+'}${Math.abs(new Date().getTimezoneOffset() / 60)}.
 Analyze user text style using the chat history and try to respond accordingly.
+
+User profile: ${JSON.stringify({ ...userData, ...userProfileData, education: educationWithoutId })}
 
 When a user provides information that could be useful for future interactions, you should save it to the user's profile using the 'saveUserInfo' function.
 Examples of valuable information include:
@@ -121,23 +130,28 @@ You: (Calls saveUserInfo with content='Loves playing tennis.')
 
 All memory entries should be stored in English.
 
-User profile: ${JSON.stringify({ ...userData, ...userProfileData, education: educationWithoutId })}`,
+User memory: ${JSON.stringify(userMemoryContents)}`,
         },
       ],
     },
     history: chatHistory.map((msg) => ({
-      role: msg.role.toLowerCase(),
+      role:
+        msg.type === ContentType.text
+          ? msg.role
+          : msg.type === ContentType.function_call
+            ? 'model'
+            : 'function',
       parts: [
-        msg.content.type === ContentType.TEXT
+        msg.type === ContentType.text
           ? {
-              text: msg.content.textContent.text,
+              text: msg.text,
             }
-          : msg.content.type === ContentType.FUNCTION_CALL
+          : msg.type === ContentType.function_call
             ? {
-                functionCall: msg.content.functionCallContent,
+                functionCall: { name: msg.name, args: msg.args },
               }
             : {
-                functionResponse: msg.content.functionResponseContent,
+                functionResponse: { name: msg.name, response: msg.response },
               },
       ],
     })),
@@ -149,55 +163,57 @@ User profile: ${JSON.stringify({ ...userData, ...userProfileData, education: edu
     toolConfig: { functionCallingConfig: { mode: FunctionCallingMode.AUTO } },
   });
 
-  const response = await chat.sendMessage(
-    parsedMessage.data.content.textContent.text
-  );
+  const response = await chat.sendMessage(parsedMessage.data.text);
 
   const result = await executeResponse(chat, response.response, userId);
 
-  const modelResponse: TextContentOnlyHistorySchema = {
-    content: {
-      type: ContentType.TEXT,
-      textContent: {
-        text: result.text(),
-      },
-    },
-    role: 'MODEL',
-    time: new Date(),
+  const modelResponse: ModelTextSchema = {
+    role: TextContentRole.model,
+    type: ContentType.text,
+    text: result.text(),
+    timeSent: new Date(),
   };
 
-  saveTextMessage(modelResponse);
+  // Wait for both save operations to complete
+  await Promise.all([saveTextMessagePromise, saveTextMessage(modelResponse)]);
+
   return {
     success: true,
     message: RESPONSE_MESSAGES.MESSAGE_SENT_SUCCESS,
-    data: modelResponse.content.textContent.text,
+    data: { text: modelResponse.text, timeSent: modelResponse.timeSent },
   };
 };
 
 const executeResponse = async (
   chat: ChatSession,
-  response: GenerateContentResult['response'],
+  initialResponse: GenerateContentResult['response'],
   userId: string
 ) => {
-  const functionCalls = response.functionCalls();
+  let currentResponse = initialResponse;
 
-  if (!functionCalls) {
-    return response;
+  while (true) {
+    const functionCalls = currentResponse.functionCalls();
+
+    if (!functionCalls || functionCalls.length === 0) {
+      break;
+    }
+
+    const funcResponses = await Promise.all(
+      functionCalls.map((funcCall) => makeFunctionCall(funcCall, userId))
+    );
+
+    currentResponse = await chat
+      .sendMessage(
+        funcResponses
+          .filter((resp) => resp !== undefined)
+          .map((functionResponse) => ({
+            functionResponse,
+          }))
+      )
+      .then((response) => response.response);
   }
 
-  const funcResponses = await Promise.all(
-    functionCalls.map((funcCall) => makeFunctionCall(funcCall, userId))
-  );
-
-  const newResponse = await chat.sendMessage(
-    funcResponses
-      .filter((resp) => resp !== undefined)
-      .map((functionResponse) => ({
-        functionResponse,
-      }))
-  );
-
-  return await executeResponse(chat, newResponse.response, userId);
+  return currentResponse;
 };
 
 const makeFunctionCall = async (
@@ -216,26 +232,18 @@ const makeFunctionCall = async (
 };
 
 const saveFunctionCall = async (funcCall: FunctionCall) => {
-  const functionCall: FunctionCallContentOnlyHistorySchema = {
-    content: {
-      type: ContentType.FUNCTION_CALL,
-      functionCallContent: funcCall,
-    },
-    role: 'MODEL',
-    time: new Date(),
+  const functionCall: FunctionCallContentSchema = {
+    type: ContentType.function_call,
+    ...funcCall,
   };
 
   saveFunctionCallMessage(functionCall);
 };
 
 const saveFunctionResponse = async (funcResponse: FunctionResponse) => {
-  const functionResponse: FunctionResponseContentOnlyHistorySchema = {
-    content: {
-      type: ContentType.FUNCTION_RESPONSE,
-      functionResponseContent: funcResponse,
-    },
-    role: 'MODEL',
-    time: new Date(),
+  const functionResponse: FunctionResponseContentSchema = {
+    type: ContentType.function_response,
+    ...funcResponse,
   };
 
   saveFunctionResponseMessage(functionResponse);

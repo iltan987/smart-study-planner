@@ -1,4 +1,4 @@
-import { Gender, Language } from '@prisma/client';
+import { Gender, Language } from '@/generated/prisma-client';
 import { z } from 'zod';
 import { educationInfoSchema } from './education-info.schema';
 

@@ -1,16 +1,11 @@
-import prisma from '@/lib/db';
-import { memorySchema } from '@/schemas/memory.schema';
+import { updateMemorySchema } from '@/schemas/memory.schema';
 import type { FunctionCall } from '@google/generative-ai';
+import { createMemory } from '../../utils/memory.util';
 
 export const saveUserInfo = async (funcCall: FunctionCall, userId: string) => {
-  const parsedArgs = memorySchema.safeParse(funcCall.args);
+  const parsedArgs = updateMemorySchema.safeParse(funcCall.args);
   if (parsedArgs.success) {
-    await prisma.memory.create({
-      data: {
-        userId: userId,
-        content: parsedArgs.data.content,
-      },
-    });
+    await createMemory(userId, parsedArgs.data);
 
     return {
       name: saveUserInfo.name,
