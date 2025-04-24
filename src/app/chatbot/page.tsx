@@ -6,15 +6,18 @@ import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { type TextContentOnlyHistorySchema } from '@/schemas/history.schema';
-import { Role } from '@prisma/client';
+import { ContentType, TextContentRole } from '@/generated/prisma-client';
+import type {
+  TextContentSchema,
+  UserTextSchema,
+} from '@/schemas/history.schema';
 import { Bot, Send } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 export default function ChatBotPage() {
-  const [messages, setMessages] = useState<TextContentOnlyHistorySchema[]>([]);
+  const [messages, setMessages] = useState<TextContentSchema[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -48,10 +51,11 @@ export default function ChatBotPage() {
     if (!isAuthenticated) return;
     if (!inputValue.trim()) return;
 
-    const userMessage: TextContentOnlyHistorySchema = {
-      role: Role.USER,
-      content: { type: 'TEXT', textContent: { text: inputValue } },
-      time: new Date(),
+    const userMessage: UserTextSchema = {
+      text: inputValue,
+      timeSent: new Date(),
+      type: ContentType.text,
+      role: TextContentRole.user,
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -65,14 +69,10 @@ export default function ChatBotPage() {
         setMessages((prev) => [
           ...prev,
           {
-            content: {
-              textContent: {
-                text: response.data,
-              },
-              type: 'TEXT',
-            },
-            role: Role.MODEL,
-            time: new Date(),
+            role: TextContentRole.model,
+            text: response.data.text,
+            timeSent: response.data.timeSent,
+            type: ContentType.text,
           },
         ]);
       } else {
@@ -125,16 +125,18 @@ export default function ChatBotPage() {
             <div
               key={index}
               className={`flex ${
-                msg.role === Role.USER ? 'justify-end' : 'justify-start'
+                msg.role === TextContentRole.user
+                  ? 'justify-end'
+                  : 'justify-start'
               }`}
             >
               <Card
                 className={`max-w-3/4 p-3 ${
-                  msg.role === Role.USER ? 'bg-primary' : 'bg-accent'
+                  msg.role === TextContentRole.user ? 'bg-primary' : 'bg-accent'
                 }`}
               >
                 <div className="flex items-start">
-                  {msg.role === Role.MODEL && (
+                  {msg.role === TextContentRole.model && (
                     <Avatar className="h-8 w-8 mr-2 flex items-center justify-center flex-shrink-0 bg-primary/10">
                       <Bot className="h-5 w-5 text-primary" />
                     </Avatar>
@@ -142,21 +144,21 @@ export default function ChatBotPage() {
                   <div className="w-full overflow-hidden">
                     <p
                       className={`break-words whitespace-normal text-left ${
-                        msg.role === Role.USER
+                        msg.role === TextContentRole.user
                           ? 'text-primary-foreground'
                           : 'text-accent-foreground'
                       }`}
                     >
-                      {msg.content.textContent.text}
+                      {msg.text}
                     </p>
                     <p
                       className={`text-xs mt-1 ${
-                        msg.role === Role.USER
+                        msg.role === TextContentRole.user
                           ? 'text-right text-primary-foreground/70'
                           : 'text-left text-accent-foreground/70'
                       }`}
                     >
-                      {msg.time.toLocaleTimeString([], {
+                      {msg.timeSent.toLocaleTimeString([], {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
