@@ -76,7 +76,7 @@ const events = [
 export default function StudyPlanner() {
   return (
     <div className="max-w-7xl mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-6">Smart Study Planner</h2>
+      <h2 className="text-2xl font-bold mb-6">Weekly plan</h2>
       <div className="grid grid-cols-7 gap-px border bg-border text-sm text-muted-foreground">
         <div className="bg-background p-2 font-medium text-center">Time</div>
         {days.map((day) => (
