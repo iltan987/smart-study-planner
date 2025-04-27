@@ -91,9 +91,9 @@ const chartOptions = {
 
 const HomePage = () => {
   return (
-    <div className="min-h-screen flex flex-col  ">
+    <div className="min-h-screen flex flex-col rounded-xl bg-purple-50  ">
       {/* Header Section */}
-      <section className="text-center py-20 bg-purple-50 text-white rounded-xl p-4">
+      <section className="text-center py-20 text-white rounded-xl p-4">
         <h1 className="text-4xl font-bold text-black">
           Organize Your Studies Efficiently!
         </h1>
@@ -103,7 +103,7 @@ const HomePage = () => {
       </section>
 
       {/* Features Section */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-10 text-center">
+      <section className="grid  grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-10 text-center">
         <div className="p-6 border rounded-lg shadow-lg hover:bg-gray-200">
           <h2 className="text-xl font-semibold">📅 Task Scheduling</h2>
           <p className="text-gray-600 mt-2">
@@ -125,8 +125,8 @@ const HomePage = () => {
       </section>
 
       {/* Performance Charts Section */}
-      <section className="p-10 bg-gray-100 rounded-xl">
-        <h2 className="text-3xl font-semibold text-center  mb-10">
+      <section className="p-10">
+        <h2 className="text-3xl font-semibold text-center dark:text-black mb-10">
           📊 Your Performance
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
