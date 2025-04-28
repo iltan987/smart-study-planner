@@ -340,7 +340,8 @@ const TodoList: React.FC = () => {
                           <SelectItem value="study">Study</SelectItem>
                           <SelectItem value="assignment">Assignment</SelectItem>
                           <SelectItem value="exam">Exam</SelectItem>
-                          <SelectItem value="reading">Reading</SelectItem>
+                          <SelectItem value="work">Work</SelectItem>
+                          <SelectItem value="gym">Gym</SelectItem>
                           <SelectItem value="other">Other</SelectItem>
                         </SelectContent>
                       </Select>
