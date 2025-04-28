@@ -7,6 +7,11 @@ export const navigationItems = [
     icon: Home,
   },
   {
+    title: 'Profile',
+    url: '/profile',
+    icon: User,
+  },
+  {
     title: 'Calendar',
     url: '/calendar',
     icon: Calendar,
