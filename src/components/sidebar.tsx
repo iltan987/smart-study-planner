@@ -1,11 +1,13 @@
 'use client';
 
 import { navigationItems } from '@/config/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Sidebar as SidebarComponent,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarMenu,
@@ -21,7 +23,7 @@ export function Sidebar() {
 
   return (
     <SidebarComponent variant="floating" collapsible="icon">
-      <SidebarContent>
+      <SidebarContent className="flex flex-col justify-between h-full">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -41,6 +43,18 @@ export function Sidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        <SidebarFooter>
+          <div className="flex items-center gap-3 p-4">
+            <Image
+              src="/images/logo.png"
+              alt="SSP"
+              width={24}
+              height={24}
+              className="rounded-full"
+            />
+            <span className="text-sm font-medium">Welcome to SSP</span>
+          </div>
+        </SidebarFooter>
       </SidebarContent>
     </SidebarComponent>
   );
