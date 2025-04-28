@@ -11,7 +11,7 @@ import type {
   TextContentSchema,
   UserTextSchema,
 } from '@/schemas/history.schema';
-import { Bot, Send } from 'lucide-react';
+import { Bot, Paperclip, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -97,6 +97,10 @@ export default function ChatBotPage() {
       onSubmit();
     }
   };
+  const handleRating = (messageId: string, rating: 'up' | 'down') => {
+    console.log(`Message ${messageId} was rated: ${rating}`);
+    // You could send this to your backend here
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -117,8 +121,27 @@ export default function ChatBotPage() {
         className="flex-1 overflow-y-auto p-4 space-y-4"
       >
         {messages.length === 0 ? (
-          <div className="h-full flex items-center justify-center">
-            <p className="text-muted-foreground text-lg">How can I help you?</p>
+          // <div className="items-center justify-center">
+          //   <p className="text-muted-foreground text-lg items-center justify-center">
+          //     How can I help you?
+          //   </p>
+          // </div>
+          <div className="flex justify-start">
+            <Card className={`max-w-3/4 p-3 ${'bg-accent'}`}>
+              <div className="flex items-start">
+                <Avatar className="h-8 w-8 mr-2 flex items-center justify-center flex-shrink-0 bg-primary/10">
+                  <Bot className="h-5 w-5 text-primary" />
+                </Avatar>
+                <div className="w-full overflow-hidden">
+                  <p
+                    className={`break-words whitespace-normal text-left  'text-accent-foreground'
+                  }`}
+                  >
+                    {'how can I help you?'}
+                  </p>
+                </div>
+              </div>
+            </Card>
           </div>
         ) : (
           messages.map((msg, index) => (
@@ -151,6 +174,23 @@ export default function ChatBotPage() {
                     >
                       {msg.text}
                     </p>
+                    {/* Rating UI for Bot Messages */}
+                    {msg.role === TextContentRole.model && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <button
+                          className="p-1 rounded-full hover:bg-primary/10"
+                          onClick={() => handleRating('sazv', 'up')}
+                        >
+                          <ThumbsUp className="h-4 w-4 text-primary" />
+                        </button>
+                        <button
+                          className="p-1 rounded-full hover:bg-primary/10"
+                          onClick={() => handleRating('10', 'down')}
+                        >
+                          <ThumbsDown className="h-4 w-4 text-primary" />
+                        </button>
+                      </div>
+                    )}
                     <p
                       className={`text-xs mt-1 ${
                         msg.role === TextContentRole.user
@@ -204,6 +244,7 @@ export default function ChatBotPage() {
       {/* Input area - fixed at the bottom */}
       <div className="border-t p-4 bg-background">
         <div className="flex items-center space-x-2">
+          <Paperclip className="h-4 w-4 text-muted-foreground" />
           <Input
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
