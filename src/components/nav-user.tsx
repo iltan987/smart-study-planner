@@ -42,10 +42,10 @@ export function NavUser({ handleLogout }: { handleLogout: () => void }) {
     return (
       <SidebarMenuButton size="lg">
         <Skeleton className="h-8 w-8 rounded-lg" />
-        <div className="grid flex-1 gap-1 text-left">
+        {/* <div className="grid flex-1 gap-1 text-left">
           <Skeleton className="h-4 w-20" />
           <Skeleton className="h-3 w-32" />
-        </div>
+        </div> */}
         <Skeleton className="ml-auto h-4 w-4" />
       </SidebarMenuButton>
     );
