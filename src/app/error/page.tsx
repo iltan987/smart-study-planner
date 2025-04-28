@@ -8,8 +8,8 @@ export default function ErrorPage() {
       <Image
         src="/images/404.svg"
         alt="Error"
-        width={180}
-        height={180}
+        width={200}
+        height={200}
         className="mb-4"
       />
       <h1 className="text-4xl font-bold mb-4">Something went wrong</h1>
