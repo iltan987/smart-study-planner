@@ -19,6 +19,7 @@ model User {
   memory        Memory[]
   history       History[]
   profile       Profile?
+  todos         Todo[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -157,4 +158,42 @@ model EducationInfo {
 
   profile       Profile @relation(fields: [profileUserId], references: [userId], onDelete: Cascade)
   profileUserId String
+}
+
+enum Priority {
+  low
+  medium
+  high
+}
+
+enum Category {
+  study
+  assignment
+  exam
+  work
+  gym
+  other
+}
+
+enum Status {
+  pending
+  completed
+  missed
+}
+
+model Todo {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  priority    Priority  @default(medium)
+  category    Category  @default(study)
+  dueTime     DateTime?
+  duration    Int? // Duration in minutes
+  status      Status    @default(pending)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  User   User   @relation(fields: [userId], references: [id])
+  userId String
 }

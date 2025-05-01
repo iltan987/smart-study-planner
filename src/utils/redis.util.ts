@@ -69,6 +69,7 @@ export async function getFunctionCallHistory(
         time: new Date(entry.time),
         name: entry.name,
         args: JSON.parse(entry.args),
+        type: ContentType.function_call,
       })
     );
   }
@@ -107,6 +108,7 @@ export async function getFunctionResponseHistory(
         time: new Date(entry.time),
         name: entry.name,
         response: JSON.parse(entry.response),
+        type: ContentType.function_response,
       })
     );
   }
