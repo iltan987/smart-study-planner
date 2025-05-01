@@ -1,17 +1,3 @@
-/*
-CREATING
-    title: string, required, min length 1
-    description: string, optional
-    priority: enum: ["low", "medium", "high"], optional, default: "medium"
-    category: enum: ["study", "assignment", "exam", "work", "gym", "other"], optional, default: "study"
-    dueTime: date, optional
-    duration: positive number, optional
-    status: enum: ["pending", "completed", "missed"], optional, default: "pending"
-
-UPDATING
-    status: enum: ["pending", "completed", "missed"], required
-*/
-
 import { Category, Priority, Status } from '@/generated/prisma-client';
 import { z } from 'zod';
 
