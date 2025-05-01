@@ -27,8 +27,15 @@ export const getTodosInputSchema = z.object({
 
 export type GetTodosInputSchema = z.infer<typeof getTodosInputSchema>;
 
-export const getTodosResponseSchema = createTodoSchema.extend({
+export const getTodosResponseSchema = z.object({
   id: z.string().cuid(),
+  title: z.string(),
+  description: z.string().nullable().optional(),
+  priority: z.nativeEnum(Priority).nullable().optional(),
+  category: z.nativeEnum(Category).nullable().optional(),
+  dueTime: z.coerce.date().nullable().optional(),
+  duration: z.number().positive().nullable().optional(),
+  status: z.nativeEnum(Status).nullable().optional(),
 });
 
 export type GetTodosResponseSchema = z.infer<typeof getTodosResponseSchema>;
