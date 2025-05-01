@@ -1,4 +1,6 @@
 'use client';
+
+import { createTodo, getTodos, markAs } from '@/actions/todo.action';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +36,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Category, Priority, Status } from '@/generated/prisma-client';
+import type {
+  CreateTodoSchema,
+  GetTodosResponseSchema,
+} from '@/schemas/todo.schema';
+import { createTodoSchema, markAsTodoSchema } from '@/schemas/todo.schema';
 import { format } from 'date-fns';
 import {
   CheckCircle2,
@@ -44,159 +52,151 @@ import {
   Plus,
   XCircle,
 } from 'lucide-react';
-import React, { useState } from 'react';
-
-// Type definitions
-type TaskStatus = 'pending' | 'completed' | 'missed';
-type TaskPriority = 'low' | 'medium' | 'high';
-type TaskCategory = 'study' | 'assignment' | 'exam' | 'reading' | 'other';
-
-interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  status: TaskStatus;
-  priority: TaskPriority;
-  category: TaskCategory;
-  dueTime?: string;
-  estimatedMinutes?: number;
-  createdAt: Date;
-}
-
-// Sample data
-const initialTasks: Task[] = [
-  {
-    id: '1',
-    title: 'Complete Math Assignment',
-    description: 'Finish problems 1-20 on page 75',
-    status: 'pending',
-    priority: 'high',
-    category: 'assignment',
-    dueTime: '17:00',
-    estimatedMinutes: 45,
-    createdAt: new Date(),
-  },
-  {
-    id: '2',
-    title: 'Read History Chapter 4',
-    description: 'Take notes on key events',
-    status: 'completed',
-    priority: 'medium',
-    category: 'reading',
-    dueTime: '15:30',
-    estimatedMinutes: 30,
-    createdAt: new Date(),
-  },
-  {
-    id: '3',
-    title: 'Review Physics Formulas',
-    description: 'Focus on chapters 7-9 for quiz tomorrow',
-    status: 'missed',
-    priority: 'high',
-    category: 'study',
-    dueTime: '20:00',
-    estimatedMinutes: 60,
-    createdAt: new Date(),
-  },
-  {
-    id: '4',
-    title: 'Prepare English Presentation',
-    description: 'Create outline and slides',
-    status: 'pending',
-    priority: 'medium',
-    category: 'assignment',
-    dueTime: '22:00',
-    estimatedMinutes: 90,
-    createdAt: new Date(),
-  },
-  {
-    id: '5',
-    title: 'Schedule Study Group',
-    description: 'Coordinate with classmates for weekend session',
-    status: 'completed',
-    priority: 'low',
-    category: 'other',
-    estimatedMinutes: 15,
-    createdAt: new Date(),
-  },
-];
+import { useSession } from 'next-auth/react';
+import { redirect } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 
 const TodoList: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const { data, status } = useSession();
+
+  if (status === 'unauthenticated') {
+    redirect('/login');
+  }
+
+  const [tasks, setTasks] = useState<GetTodosResponseSchema[]>([]);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isAddingTask, setIsAddingTask] = useState(false);
-  const [newTask, setNewTask] = useState<Partial<Task>>({
+  const [newTask, setNewTask] = useState<CreateTodoSchema>({
     title: '',
-    description: '',
-    status: 'pending',
-    priority: 'medium',
-    category: 'study',
+    status: Status.pending,
+    priority: Priority.medium,
+    category: Category.study,
+    description: undefined,
+    dueTime: undefined,
+    duration: undefined,
   });
-  const [selectedFilter, setSelectedFilter] = useState<TaskStatus | 'all'>(
-    'all'
-  );
+  const [selectedFilter, setSelectedFilter] = useState<Status | 'all'>('all');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const getMyTodos = async () => {
+      if (!data?.user.id) return;
+
+      try {
+        // getTodos expect userId, start and end. Start is the very beginning of the current day and end is the very end of the current day.
+        const start = new Date(new Date().setHours(0, 0, 0, 0));
+        const end = new Date(new Date().setHours(23, 59, 59, 999));
+        const todos = await getTodos(data.user.id, start, end);
+        if (todos.success) {
+          setTasks(todos.data);
+        } else {
+          console.error('Error fetching todos:', todos.error);
+        }
+      } catch (error) {
+        console.error('Error fetching todos:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    getMyTodos();
+  }, [data?.user?.id]);
 
   // Calculate task stats
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter(
-    (task) => task.status === 'completed'
+    (task) => task.status === Status.completed
   ).length;
-  const pendingTasks = tasks.filter((task) => task.status === 'pending').length;
-  const missedTasks = tasks.filter((task) => task.status === 'missed').length;
+  const pendingTasks = tasks.filter(
+    (task) => task.status === Status.pending
+  ).length;
+  const missedTasks = tasks.filter(
+    (task) => task.status === Status.missed
+  ).length;
   const completionRate =
     totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   // Handle quick add task
   const handleQuickAddTask = () => {
-    if (newTaskTitle.trim() === '') return;
+    if (!data?.user.id) return;
 
-    const newTaskItem: Task = {
-      id: Date.now().toString(),
+    const endOfToday = new Date(new Date().setHours(23, 59, 59, 999));
+    const addTodo = createTodoSchema.parse({
       title: newTaskTitle,
-      status: 'pending',
-      priority: 'medium',
-      category: 'study',
-      createdAt: new Date(),
-    };
-
-    setTasks([newTaskItem, ...tasks]);
-    setNewTaskTitle('');
+      dueTime: endOfToday,
+    });
+    createTodo(data.user.id, addTodo).then((res) => {
+      if (res.success) {
+        setTasks((prev) => [{ id: res.data, ...addTodo }, ...prev]);
+        setNewTaskTitle('');
+      } else {
+        console.error('Error creating quick task:', res.error);
+      }
+    });
   };
 
   // Handle add task with details
   const handleAddDetailedTask = () => {
-    if (!newTask.title || newTask.title.trim() === '') return;
+    if (!data?.user.id) return;
 
-    const taskToAdd: Task = {
-      id: Date.now().toString(),
+    const endOfToday = new Date(new Date().setHours(23, 59, 59, 999));
+    const parsedTodo = createTodoSchema.safeParse({
       title: newTask.title,
       description: newTask.description,
-      status: (newTask.status as TaskStatus) || 'pending',
-      priority: (newTask.priority as TaskPriority) || 'medium',
-      category: (newTask.category as TaskCategory) || 'study',
-      dueTime: newTask.dueTime,
-      estimatedMinutes: newTask.estimatedMinutes,
-      createdAt: new Date(),
-    };
+      status: newTask.status,
+      priority: newTask.priority,
+      category: newTask.category,
+      dueTime: newTask.dueTime || endOfToday,
+      duration: newTask.duration,
+    });
 
-    setTasks([taskToAdd, ...tasks]);
-    setIsAddingTask(false);
-    setNewTask({
-      title: '',
-      description: '',
-      status: 'pending',
-      priority: 'medium',
-      category: 'study',
+    if (!parsedTodo.success) {
+      console.error('Error creating detailed task:', parsedTodo.error);
+      return;
+    }
+
+    createTodo(data.user.id, parsedTodo.data).then((res) => {
+      if (res.success) {
+        setTasks((prev) => [{ id: res.data, ...parsedTodo.data }, ...prev]);
+        setIsAddingTask(false);
+        setNewTask({
+          title: '',
+          description: '',
+          status: Status.pending,
+          priority: Priority.medium,
+          category: Category.study,
+          dueTime: undefined,
+        });
+      } else {
+        console.error('Error creating detailed task:', res.error);
+      }
     });
   };
 
   // Update task status
-  const updateTaskStatus = (taskId: string, newStatus: TaskStatus) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === taskId ? { ...task, status: newStatus } : task
-      )
-    );
+  const updateTaskStatus = (taskId: string, newStatus: Status) => {
+    if (!data?.user.id) return;
+
+    const markAsTodo = markAsTodoSchema.safeParse({
+      todoId: taskId,
+      status: newStatus,
+    });
+
+    if (!markAsTodo.success) {
+      console.error('Error marking task:', markAsTodo.error);
+      return;
+    }
+
+    markAs(data.user.id, markAsTodo.data).then((res) => {
+      if (res.success) {
+        setTasks(
+          tasks.map((task) =>
+            task.id === taskId ? { ...task, status: newStatus } : task
+          )
+        );
+      } else {
+        console.error('Error updating task status:', res.error);
+      }
+    });
   };
 
   // Delete task
@@ -205,17 +205,37 @@ const TodoList: React.FC = () => {
   };
 
   // Filter tasks based on selected filter
-  const filteredTasks =
+  const filteredTasks = (
     selectedFilter === 'all'
       ? tasks
-      : tasks.filter((task) => task.status === selectedFilter);
+      : tasks.filter((task) => task.status === selectedFilter)
+  ).sort((a, b) => {
+    // sort first by priority descending then dueTime
+    const priorityOrder = {
+      high: 3,
+      medium: 2,
+      low: 1,
+    };
+    const aPriority = priorityOrder[a.priority ?? 'low'] || 0;
+    const bPriority = priorityOrder[b.priority ?? 'low'] || 0;
+    if (aPriority !== bPriority) {
+      return bPriority - aPriority; // Sort by priority descending
+    }
+    if (a.dueTime && b.dueTime) {
+      return a.dueTime.getTime() - b.dueTime.getTime(); // Sort by dueTime ascending
+    }
+    if (a.dueTime) return -1; // a has dueTime, b doesn't
+
+    if (b.dueTime) return 1; // b has dueTime, a doesn't
+    return 0; // both have no dueTime
+  });
 
   // Get status icon
-  const getStatusIcon = (status: TaskStatus) => {
+  const getStatusIcon = (status?: Status | null) => {
     switch (status) {
-      case 'completed':
+      case Status.completed:
         return <CheckCircle2 className="h-5 w-5 text-green-500" />;
-      case 'missed':
+      case Status.missed:
         return <XCircle className="h-5 w-5 text-red-500" />;
       default:
         return <Circle className="h-5 w-5 text-gray-400" />;
@@ -223,7 +243,7 @@ const TodoList: React.FC = () => {
   };
 
   // Get priority badge
-  const getPriorityBadge = (priority: TaskPriority) => {
+  const getPriorityBadge = (priority?: Priority | null) => {
     switch (priority) {
       case 'high':
         return <Badge variant="destructive">High</Badge>;
@@ -231,11 +251,13 @@ const TodoList: React.FC = () => {
         return <Badge variant="default">Medium</Badge>;
       case 'low':
         return <Badge variant="outline">Low</Badge>;
+      default:
+        return null;
     }
   };
 
   // Get category badge
-  const getCategoryBadge = (category: TaskCategory) => {
+  const getCategoryBadge = (category?: Category | null) => {
     switch (category) {
       case 'study':
         return <Badge variant="secondary">Study</Badge>;
@@ -243,8 +265,10 @@ const TodoList: React.FC = () => {
         return <Badge className="bg-indigo-600">Assignment</Badge>;
       case 'exam':
         return <Badge className="bg-purple-600">Exam</Badge>;
-      case 'reading':
-        return <Badge className="bg-blue-600">Reading</Badge>;
+      case 'work':
+        return <Badge className="bg-green-600">Work</Badge>;
+      case 'gym':
+        return <Badge className="bg-red-600">Gym</Badge>;
       default:
         return <Badge variant="outline">Other</Badge>;
     }
@@ -264,7 +288,7 @@ const TodoList: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Dialog open={isAddingTask} onOpenChange={setIsAddingTask}>
               <DialogTrigger asChild>
-                <Button>
+                <Button disabled={status === 'loading' || loading}>
                   <Plus className="mr-2 h-4 w-4" /> Add Task
                 </Button>
               </DialogTrigger>
@@ -294,7 +318,7 @@ const TodoList: React.FC = () => {
                     <Input
                       id="task-description"
                       placeholder="Add more details"
-                      value={newTask.description}
+                      value={newTask.description || ''}
                       onChange={(e) =>
                         setNewTask({ ...newTask, description: e.target.value })
                       }
@@ -308,7 +332,7 @@ const TodoList: React.FC = () => {
                         onValueChange={(value) =>
                           setNewTask({
                             ...newTask,
-                            priority: value as TaskPriority,
+                            priority: value as Priority,
                           })
                         }
                       >
@@ -329,7 +353,7 @@ const TodoList: React.FC = () => {
                         onValueChange={(value) =>
                           setNewTask({
                             ...newTask,
-                            category: value as TaskCategory,
+                            category: value as Category,
                           })
                         }
                       >
@@ -353,10 +377,19 @@ const TodoList: React.FC = () => {
                       <Input
                         id="task-time"
                         type="time"
-                        value={newTask.dueTime}
-                        onChange={(e) =>
-                          setNewTask({ ...newTask, dueTime: e.target.value })
+                        value={
+                          newTask.dueTime
+                            ? newTask.dueTime.toTimeString().split(' ')[0] // Time in HH:mm:ss format
+                            : ''
                         }
+                        onChange={(e) => {
+                          console.log(e.target.valueAsDate);
+
+                          setNewTask({
+                            ...newTask,
+                            dueTime: e.target.valueAsDate || undefined,
+                          });
+                        }}
                       />
                     </div>
                     <div className="space-y-2">
@@ -366,11 +399,11 @@ const TodoList: React.FC = () => {
                         type="number"
                         min="1"
                         placeholder="Estimated minutes"
-                        value={newTask.estimatedMinutes}
+                        value={newTask.duration}
                         onChange={(e) =>
                           setNewTask({
                             ...newTask,
-                            estimatedMinutes: parseInt(e.target.value),
+                            duration: parseInt(e.target.value),
                           })
                         }
                       />
@@ -384,7 +417,9 @@ const TodoList: React.FC = () => {
                   >
                     Cancel
                   </Button>
-                  <Button onClick={handleAddDetailedTask}>Add Task</Button>
+                  <Button onClick={handleAddDetailedTask} disabled={loading}>
+                    Add Task
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -401,7 +436,9 @@ const TodoList: React.FC = () => {
               if (e.key === 'Enter') handleQuickAddTask();
             }}
           />
-          <Button onClick={handleQuickAddTask}>Add</Button>
+          <Button onClick={handleQuickAddTask} disabled={loading}>
+            Add
+          </Button>
         </div>
 
         {/* Task Stats Cards */}
@@ -582,12 +619,15 @@ const TodoList: React.FC = () => {
                           {task.dueTime && (
                             <div className="flex items-center text-xs text-gray-500">
                               <Clock className="h-3 w-3 mr-1" />
-                              {task.dueTime}
+                              {task.dueTime.toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
                             </div>
                           )}
-                          {task.estimatedMinutes && (
+                          {task.duration && (
                             <div className="text-xs text-gray-500">
-                              {task.estimatedMinutes} min
+                              {task.duration} min
                             </div>
                           )}
                         </div>

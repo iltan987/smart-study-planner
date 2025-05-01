@@ -17,7 +17,14 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 export default function ChatBotPage() {
-  const [messages, setMessages] = useState<TextContentSchema[]>([]);
+  const [messages, setMessages] = useState<TextContentSchema[]>([
+    {
+      role: TextContentRole.model,
+      text: 'Hello! How can I help you today?',
+      timeSent: new Date(),
+      type: ContentType.text,
+    },
+  ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -39,7 +46,7 @@ export default function ChatBotPage() {
     getTextHistory()
       .then((history) => {
         if (history.success) {
-          setMessages(history.data);
+          setMessages((prev) => [...prev, ...history.data]);
         }
       })
       .catch((error) => {
@@ -120,95 +127,70 @@ export default function ChatBotPage() {
         ref={messageContainerRef}
         className="flex-1 overflow-y-auto p-4 space-y-4"
       >
-        {messages.length === 0 ? (
-          // <div className="items-center justify-center">
-          //   <p className="text-muted-foreground text-lg items-center justify-center">
-          //     How can I help you?
-          //   </p>
-          // </div>
-          <div className="flex justify-start">
-            <Card className={`max-w-3/4 p-3 ${'bg-accent'}`}>
+        {messages.map((msg, index) => (
+          <div
+            key={index}
+            className={`flex ${
+              msg.role === TextContentRole.user
+                ? 'justify-end'
+                : 'justify-start'
+            }`}
+          >
+            <Card
+              className={`max-w-3/4 p-3 ${
+                msg.role === TextContentRole.user ? 'bg-primary' : 'bg-accent'
+              }`}
+            >
               <div className="flex items-start">
-                <Avatar className="h-8 w-8 mr-2 flex items-center justify-center flex-shrink-0 bg-primary/10">
-                  <Bot className="h-5 w-5 text-primary" />
-                </Avatar>
+                {msg.role === TextContentRole.model && (
+                  <Avatar className="h-8 w-8 mr-2 flex items-center justify-center flex-shrink-0 bg-primary/10">
+                    <Bot className="h-5 w-5 text-primary" />
+                  </Avatar>
+                )}
                 <div className="w-full overflow-hidden">
                   <p
-                    className={`break-words whitespace-normal text-left  'text-accent-foreground'
-                  }`}
+                    className={`break-words whitespace-normal text-left ${
+                      msg.role === TextContentRole.user
+                        ? 'text-primary-foreground'
+                        : 'text-accent-foreground'
+                    }`}
                   >
-                    {'how can I help you?'}
+                    {msg.text}
+                  </p>
+                  {/* Rating UI for Bot Messages */}
+                  {msg.role === TextContentRole.model && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <button
+                        className="p-1 rounded-full hover:bg-primary/10"
+                        onClick={() => handleRating('sazv', 'up')}
+                      >
+                        <ThumbsUp className="h-4 w-4 text-primary" />
+                      </button>
+                      <button
+                        className="p-1 rounded-full hover:bg-primary/10"
+                        onClick={() => handleRating('10', 'down')}
+                      >
+                        <ThumbsDown className="h-4 w-4 text-primary" />
+                      </button>
+                    </div>
+                  )}
+                  <p
+                    className={`text-xs mt-1 ${
+                      msg.role === TextContentRole.user
+                        ? 'text-right text-primary-foreground/70'
+                        : 'text-left text-accent-foreground/70'
+                    }`}
+                  >
+                    {msg.timeSent.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
                   </p>
                 </div>
               </div>
             </Card>
           </div>
-        ) : (
-          messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`flex ${
-                msg.role === TextContentRole.user
-                  ? 'justify-end'
-                  : 'justify-start'
-              }`}
-            >
-              <Card
-                className={`max-w-3/4 p-3 ${
-                  msg.role === TextContentRole.user ? 'bg-primary' : 'bg-accent'
-                }`}
-              >
-                <div className="flex items-start">
-                  {msg.role === TextContentRole.model && (
-                    <Avatar className="h-8 w-8 mr-2 flex items-center justify-center flex-shrink-0 bg-primary/10">
-                      <Bot className="h-5 w-5 text-primary" />
-                    </Avatar>
-                  )}
-                  <div className="w-full overflow-hidden">
-                    <p
-                      className={`break-words whitespace-normal text-left ${
-                        msg.role === TextContentRole.user
-                          ? 'text-primary-foreground'
-                          : 'text-accent-foreground'
-                      }`}
-                    >
-                      {msg.text}
-                    </p>
-                    {/* Rating UI for Bot Messages */}
-                    {msg.role === TextContentRole.model && (
-                      <div className="flex items-center gap-2 mt-2">
-                        <button
-                          className="p-1 rounded-full hover:bg-primary/10"
-                          onClick={() => handleRating('sazv', 'up')}
-                        >
-                          <ThumbsUp className="h-4 w-4 text-primary" />
-                        </button>
-                        <button
-                          className="p-1 rounded-full hover:bg-primary/10"
-                          onClick={() => handleRating('10', 'down')}
-                        >
-                          <ThumbsDown className="h-4 w-4 text-primary" />
-                        </button>
-                      </div>
-                    )}
-                    <p
-                      className={`text-xs mt-1 ${
-                        msg.role === TextContentRole.user
-                          ? 'text-right text-primary-foreground/70'
-                          : 'text-left text-accent-foreground/70'
-                      }`}
-                    >
-                      {msg.timeSent.toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          ))
-        )}
+        ))}
 
         {/* Improved loading indicator with centered bot icon */}
         {isLoading && (
