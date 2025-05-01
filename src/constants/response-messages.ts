@@ -23,6 +23,10 @@ export const RESPONSE_MESSAGES_SUCCESS = {
   PROFILE_UPDATE_SUCCESS: 'Profile updated successfully',
   MEMORY_CREATED: 'Memory created successfully',
   MEMORY_RETRIEVED: 'Memory retrieved successfully',
+  /* Todo related responses */
+  TODO_CREATED: 'Todo created successfully',
+  TODO_UPDATED: 'Todo updated successfully',
+  TODOS_RETRIEVED: 'Todos retrieved successfully',
 };
 
 export const RESPONSE_MESSAGES = {
