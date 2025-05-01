@@ -2,22 +2,18 @@
 
 import { login } from '@/actions/auth/login.action';
 import { RESPONSE_MESSAGES_SUCCESS } from '@/constants/response-messages';
+import { cn } from '@/lib/utils';
 import { loginSchema, type LoginSchema } from '@/schemas/auth/login.schema';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useSession } from 'next-auth/react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '../ui/card';
+import { Card, CardContent } from '../ui/card';
 import {
   Form,
   FormControl,
@@ -28,7 +24,13 @@ import {
 } from '../ui/form';
 import { Input } from '../ui/input';
 
-export function LoginForm() {
+export function LoginForm({
+  className,
+  ...props
+}: {
+  className?: string;
+  [key: string]: unknown;
+}) {
   const [isPending, startTransition] = useTransition();
   const { update } = useSession();
   const { push } = useRouter();
@@ -68,59 +70,59 @@ export function LoginForm() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>
-            Enter your email below to login to your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div className={cn('flex flex-col gap-6', className || '')} {...props}>
+      <Card className="overflow-hidden">
+        <CardContent className="grid p-0 md:grid-cols-2">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 md:p-8">
               <div className="flex flex-col gap-6">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          disabled={isPending}
-                          type="email"
-                          placeholder="Enter your email"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input
-                          disabled={isPending}
-                          type="password"
-                          placeholder="Enter your password"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="flex flex-col items-center text-center">
+                  <h1 className="text-2xl font-bold">
+                    Welcome to Smart Study Planner
+                  </h1>
+                </div>
+                <div className="grid gap-2">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            disabled={isPending}
+                            type="email"
+                            placeholder="Enter your email"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            disabled={isPending}
+                            type="password"
+                            placeholder="Enter your password"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <Button type="submit" disabled={isPending} className="w-full">
                   {isPending ? 'Logging in...' : 'Login'}
-                </Button>
-                <Button variant="outline" className="w-full" disabled>
-                  Login with Google (Coming soon)
                 </Button>
               </div>
               <div className="mt-4 text-center text-sm">
@@ -131,6 +133,14 @@ export function LoginForm() {
               </div>
             </form>
           </Form>
+          <div className="relative hidden bg-muted md:block">
+            <Image
+              src="/images/loginpage.png"
+              alt="Smart Study Planner"
+              className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+              fill
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

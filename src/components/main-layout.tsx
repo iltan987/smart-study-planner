@@ -25,7 +25,7 @@ const MainLayout = ({
             <Sidebar />
             <div className="flex flex-col flex-1 h-full">
               <Navbar />
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto scroll-smooth">
                 <main className="h-full">{children}</main>
               </div>
             </div>
