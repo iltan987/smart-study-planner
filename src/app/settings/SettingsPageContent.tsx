@@ -146,7 +146,7 @@ export default function SettingsPageContent({
               <Input
                 id="gpa"
                 type="number"
-                min="1"
+                min="0"
                 max="4"
                 placeholder="3.9"
                 required
