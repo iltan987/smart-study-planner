@@ -71,9 +71,6 @@ const TodoList: React.FC = () => {
     status: Status.pending,
     priority: Priority.medium,
     category: Category.study,
-    description: undefined,
-    dueTime: undefined,
-    duration: undefined,
   });
   const [selectedFilter, setSelectedFilter] = useState<Status | 'all'>('all');
   const [loading, setLoading] = useState(true);
@@ -116,8 +113,8 @@ const TodoList: React.FC = () => {
     totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   // Handle quick add task
-  const handleQuickAddTask = () => {
-    if (!data?.user.id) return;
+  const handleQuickAddTask = async () => {
+    if (!data?.user.id || !newTaskTitle.trim()) return;
 
     const endOfToday = new Date(new Date().setHours(23, 59, 59, 999));
     const addTodo = createTodoSchema.parse({
@@ -125,8 +122,25 @@ const TodoList: React.FC = () => {
       dueTime: endOfToday,
     });
     createTodo(data.user.id, addTodo).then((res) => {
+      const endOfToday = new Date(new Date().setHours(23, 59, 59, 999));
+      const addTodo = createTodoSchema.parse({
+        title: newTaskTitle.trim(),
+        dueTime: endOfToday,
+      });
+
+      const res = await createTodo(data.user.id, addTodo);
       if (res.success) {
-        setTasks((prev) => [{ id: res.data, ...addTodo }, ...prev]);
+        const { dueTime, ...rest } = addTodo;
+        setTasks((prev) => [
+          {
+            id: res.data,
+            ...rest,
+            dueTime:
+              dueTime &&
+              new Date(new Date().setHours(dueTime.hours, dueTime.minutes)),
+          },
+          ...prev,
+        ]);
         setNewTaskTitle('');
       } else {
         console.error('Error creating quick task:', res.error);
@@ -135,8 +149,8 @@ const TodoList: React.FC = () => {
   };
 
   // Handle add task with details
-  const handleAddDetailedTask = () => {
-    if (!data?.user.id) return;
+  const handleAddDetailedTask = async () => {
+    if (!data?.user.id || !newTask.title.trim()) return;
 
     const endOfToday = new Date(new Date().setHours(23, 59, 59, 999));
     const parsedTodo = createTodoSchema.safeParse({
@@ -148,23 +162,43 @@ const TodoList: React.FC = () => {
       dueTime: newTask.dueTime || endOfToday,
       duration: newTask.duration,
     });
+    });
+      const endOfToday = new Date(new Date().setHours(23, 59, 59, 999));
+      const parsedTodo = createTodoSchema.safeParse({
+        ...newTask,
+        title: newTask.title.trim(),
+        dueTime: newTask.dueTime || endOfToday,
+      });
 
+      if (!parsedTodo.success) {
     if (!parsedTodo.success) {
       console.error('Error creating detailed task:', parsedTodo.error);
       return;
+      return;
     }
+    }
+        return;
+      }
 
-    createTodo(data.user.id, parsedTodo.data).then((res) => {
+      const res = await createTodo(data.user.id, parsedTodo.data);
       if (res.success) {
-        setTasks((prev) => [{ id: res.data, ...parsedTodo.data }, ...prev]);
+        const { dueTime, ...rest } = parsedTodo.data;
+        setTasks((prev) => [
+          {
+            id: res.data,
+            ...rest,
+            dueTime:
+              dueTime &&
+              new Date(new Date().setHours(dueTime.hours, dueTime.minutes)),
+          },
+          ...prev,
+        ]);
         setIsAddingTask(false);
         setNewTask({
           title: '',
-          description: '',
           status: Status.pending,
           priority: Priority.medium,
           category: Category.study,
-          dueTime: undefined,
         });
       } else {
         console.error('Error creating detailed task:', res.error);
@@ -173,20 +207,27 @@ const TodoList: React.FC = () => {
   };
 
   // Update task status
-  const updateTaskStatus = (taskId: string, newStatus: Status) => {
+  const updateTaskStatus = async (taskId: string, newStatus: Status) => {
     if (!data?.user.id) return;
 
     const markAsTodo = markAsTodoSchema.safeParse({
       todoId: taskId,
       status: newStatus,
     });
+      const markAsTodo = markAsTodoSchema.safeParse({
+        todoId: taskId,
+        status: newStatus,
+      });
 
+      if (!markAsTodo.success) {
     if (!markAsTodo.success) {
       console.error('Error marking task:', markAsTodo.error);
       return;
     }
+        return;
+      }
 
-    markAs(data.user.id, markAsTodo.data).then((res) => {
+      const res = await markAs(data.user.id, markAsTodo.data);
       if (res.success) {
         setTasks(
           tasks.map((task) =>
@@ -379,15 +420,20 @@ const TodoList: React.FC = () => {
                         type="time"
                         value={
                           newTask.dueTime
-                            ? newTask.dueTime.toTimeString().split(' ')[0] // Time in HH:mm:ss format
+                            ? String(newTask.dueTime.hours).padStart(2, '0') +
+                              ':' +
+                              String(newTask.dueTime.minutes).padStart(2, '0')
                             : ''
                         }
                         onChange={(e) => {
-                          console.log(e.target.valueAsDate);
-
                           setNewTask({
                             ...newTask,
-                            dueTime: e.target.valueAsDate || undefined,
+                            dueTime: e.target.valueAsDate
+                              ? {
+                                  hours: e.target.valueAsDate.getUTCHours(),
+                                  minutes: e.target.valueAsDate.getUTCMinutes(),
+                                }
+                              : undefined,
                           });
                         }}
                       />
@@ -399,11 +445,13 @@ const TodoList: React.FC = () => {
                         type="number"
                         min="1"
                         placeholder="Estimated minutes"
-                        value={newTask.duration}
+                        value={newTask.duration || ''}
                         onChange={(e) =>
                           setNewTask({
                             ...newTask,
-                            duration: parseInt(e.target.value),
+                            duration: e.target.value
+                              ? parseInt(e.target.value)
+                              : undefined,
                           })
                         }
                       />
@@ -440,6 +488,15 @@ const TodoList: React.FC = () => {
             Add
           </Button>
         </div>
+
+        {error && (
+          <div
+            className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative"
+            role="alert"
+          >
+            <span className="block sm:inline">{error}</span>
+          </div>
+        )}
 
         {/* Task Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

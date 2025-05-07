@@ -28,12 +28,17 @@ export const createTodo: CreateTodoFunction = async (userId, data) => {
       return { success: false, error: parsedData.error.flatten() };
     }
 
+    const { dueTime, ...rest } = parsedData.data;
+    const dueTimeDate =
+      dueTime && new Date(new Date().setHours(dueTime.hours, dueTime.minutes));
+
     const todo = await prisma.todo.create({
       data: {
         User: {
           connect: { id: userId },
         },
-        ...parsedData.data,
+        ...rest,
+        dueTime: dueTimeDate,
       },
       select: { id: true },
     });
@@ -133,10 +138,7 @@ export const getTodos: GetTodosFunction = async (userId, start, end) => {
     // using getTodosSchema or z.array(getTodosSchema), todos should be parsed. But id should be todoId
     const parsedTodos = todos
       .map((todo) => {
-        const parsedTodo = getTodosResponseSchema.safeParse({
-          todoId: todo.id,
-          ...todo,
-        });
+        const parsedTodo = getTodosResponseSchema.safeParse(todo);
         if (parsedTodo.success) {
           return parsedTodo.data;
         } else {
@@ -144,7 +146,7 @@ export const getTodos: GetTodosFunction = async (userId, start, end) => {
           return null;
         }
       })
-      .filter((todo) => todo !== null) as GetTodosResponseSchema[];
+      .filter((todo): todo is GetTodosResponseSchema => todo !== null);
 
     return {
       success: true,
