@@ -1,17 +1,18 @@
 'use server';
 
 import { RESPONSE_MESSAGES } from '@/constants/response-messages';
+import type { Status } from '@/generated/prisma-client';
 import { PrismaClientKnownRequestError } from '@/generated/prisma-client/runtime/library';
 import prisma from '@/lib/db';
 import type {
+  CreateDailyTodoSchema,
   CreateTodoSchema,
-  GetTodosResponseSchema,
-  MarkAsTodoSchema,
+  GetTodosResponseSchemaArray,
 } from '@/schemas/todo.schema';
 import {
+  createDailyTodoSchema,
   createTodoSchema,
-  getTodosResponseSchema,
-  markAsTodoSchema,
+  getTodosResponseSchemaArray,
 } from '@/schemas/todo.schema';
 import type { Response } from '@/types/response.type';
 
@@ -28,7 +29,56 @@ export const createTodo: CreateTodoFunction = async (userId, data) => {
       return { success: false, error: parsedData.error.flatten() };
     }
 
+    const todo = await prisma.todo.create({
+      data: {
+        User: {
+          connect: { id: userId },
+        },
+        ...parsedData.data,
+      },
+      select: { id: true },
+    });
+
+    return {
+      success: true,
+      data: todo.id,
+      message: RESPONSE_MESSAGES.TODO_CREATED,
+    };
+  } catch (error) {
+    if (error instanceof PrismaClientKnownRequestError) {
+      if (error.code === 'P2025') {
+        return {
+          success: false,
+          error: RESPONSE_MESSAGES.USER_NOT_FOUND,
+        };
+      }
+    }
+
+    return {
+      success: false,
+      error: RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR,
+    };
+  }
+};
+
+type CreateDailyTodoFunction = (
+  userId: string,
+  data: CreateDailyTodoSchema
+) => Promise<Response<CreateDailyTodoSchema, string>>;
+
+export const createDailyTodo: CreateDailyTodoFunction = async (
+  userId,
+  data
+) => {
+  try {
+    const parsedData = createDailyTodoSchema.safeParse(data);
+
+    if (!parsedData.success) {
+      return { success: false, error: parsedData.error.flatten() };
+    }
+
     const { dueTime, ...rest } = parsedData.data;
+
     const dueTimeDate =
       dueTime && new Date(new Date().setHours(dueTime.hours, dueTime.minutes));
 
@@ -67,21 +117,16 @@ export const createTodo: CreateTodoFunction = async (userId, data) => {
 
 type MarkAsFunction = (
   userId: string,
-  data: MarkAsTodoSchema
-) => Promise<Response<MarkAsTodoSchema>>;
+  todoId: string,
+  newStatus: Status
+) => Promise<Response<undefined>>;
 
-export const markAs: MarkAsFunction = async (userId, data) => {
+export const markAs: MarkAsFunction = async (userId, todoId, newStatus) => {
   try {
-    const parsedData = markAsTodoSchema.safeParse(data);
-
-    if (!parsedData.success) {
-      return { success: false, error: parsedData.error.flatten() };
-    }
-
     await prisma.todo.update({
-      where: { id: data.todoId, userId: userId },
+      where: { id: todoId, userId: userId },
       data: {
-        status: parsedData.data.status,
+        status: newStatus,
       },
       select: { id: true },
     });
@@ -107,22 +152,13 @@ export const markAs: MarkAsFunction = async (userId, data) => {
   }
 };
 
-type GetTodayTodosFunction = (
-  userId: string
-) => Promise<Response<undefined, GetTodosResponseSchema[]>>;
-
-export const getTodayTodos: GetTodayTodosFunction = async (userId) => {
-  const start = new Date(new Date().setHours(0, 0, 0, 0));
-  const end = new Date(new Date().setHours(23, 59, 59, 999));
-
-  return getTodos(userId, start, end);
-};
-
 type GetTodosFunction = (
   userId: string,
   start: Date,
   end: Date
-) => Promise<Response<undefined, GetTodosResponseSchema[]>>;
+) => Promise<
+  Response<GetTodosResponseSchemaArray, GetTodosResponseSchemaArray>
+>;
 
 export const getTodos: GetTodosFunction = async (userId, start, end) => {
   try {
@@ -133,35 +169,88 @@ export const getTodos: GetTodosFunction = async (userId, start, end) => {
           gte: start,
           lte: end,
         },
+        isDeleted: false,
       },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        priority: true,
-        category: true,
-        dueTime: true,
-        duration: true,
-        status: true,
+      omit: {
+        createdAt: true,
+        updatedAt: true,
+        userId: true,
       },
     });
 
-    // using getTodosSchema or z.array(getTodosSchema), todos should be parsed. But id should be todoId
-    const parsedTodos = todos
-      .map((todo) => {
-        const parsedTodo = getTodosResponseSchema.safeParse(todo);
-        if (parsedTodo.success) {
-          return parsedTodo.data;
-        }
-        console.error('Todo parsing error:', parsedTodo.error);
-        return null;
-      })
-      .filter((todo): todo is GetTodosResponseSchema => todo !== null);
+    const parsedTodos = getTodosResponseSchemaArray.safeParse(todos);
+
+    if (!parsedTodos.success) {
+      return {
+        success: false,
+        error: parsedTodos.error.flatten(),
+      };
+    }
 
     return {
       success: true,
-      data: parsedTodos,
+      data: parsedTodos.data,
       message: RESPONSE_MESSAGES.TODOS_RETRIEVED,
+    };
+  } catch (error) {
+    if (error instanceof PrismaClientKnownRequestError) {
+      if (error.code === 'P2025') {
+        return {
+          success: false,
+          error: RESPONSE_MESSAGES.USER_NOT_FOUND,
+        };
+      }
+    }
+
+    return {
+      success: false,
+      error: RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR,
+    };
+  }
+};
+
+type GetDailyTodosFunction = (
+  userId: string
+) => Promise<
+  Response<GetTodosResponseSchemaArray, GetTodosResponseSchemaArray>
+>;
+
+export const getDailyTodos: GetDailyTodosFunction = async (userId) => {
+  const now = new Date();
+
+  // Start of the day: Set time to 00:00:00.000
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  // End of the day: Set time to 23:59:59.999
+  const end = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    23,
+    59,
+    59,
+    999
+  );
+
+  return getTodos(userId, start, end);
+};
+
+type DeleteTodoFunction = (
+  userId: string,
+  todoId: string
+) => Promise<Response<undefined>>;
+
+export const deleteTodo: DeleteTodoFunction = async (userId, todoId) => {
+  try {
+    await prisma.todo.update({
+      where: { id: todoId, userId: userId },
+      data: { isDeleted: true },
+      select: { id: true },
+    });
+
+    return {
+      success: true,
+      message: RESPONSE_MESSAGES.TODO_DELETED,
     };
   } catch (error) {
     if (error instanceof PrismaClientKnownRequestError) {

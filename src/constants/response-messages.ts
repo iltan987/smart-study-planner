@@ -27,6 +27,7 @@ export const RESPONSE_MESSAGES_SUCCESS = {
   TODO_CREATED: 'Todo created successfully',
   TODO_UPDATED: 'Todo updated successfully',
   TODOS_RETRIEVED: 'Todos retrieved successfully',
+  TODO_DELETED: 'Todo deleted successfully',
 };
 
 export const RESPONSE_MESSAGES = {

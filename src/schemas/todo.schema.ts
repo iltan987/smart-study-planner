@@ -13,6 +13,13 @@ const todoBaseSchema = z.object({
 
 // Schema for creating a new todo
 export const createTodoSchema = todoBaseSchema.extend({
+  dueTime: z.coerce.date().nullable().optional(),
+});
+
+export type CreateTodoSchema = z.infer<typeof createTodoSchema>;
+
+// Schema for creating a new daily todo
+export const createDailyTodoSchema = createTodoSchema.extend({
   dueTime: z
     .object({
       hours: z.number().min(0).max(23),
@@ -22,15 +29,7 @@ export const createTodoSchema = todoBaseSchema.extend({
     .optional(),
 });
 
-export type CreateTodoSchema = z.infer<typeof createTodoSchema>;
-
-// Schema for marking a todo as completed/pending/missed
-export const markAsTodoSchema = z.object({
-  todoId: z.string().cuid(),
-  status: z.nativeEnum(Status),
-});
-
-export type MarkAsTodoSchema = z.infer<typeof markAsTodoSchema>;
+export type CreateDailyTodoSchema = z.infer<typeof createDailyTodoSchema>;
 
 // Schema for getting todos within a date range
 export const getTodosInputSchema = z.object({
@@ -47,3 +46,9 @@ export const getTodosResponseSchema = todoBaseSchema.extend({
 });
 
 export type GetTodosResponseSchema = z.infer<typeof getTodosResponseSchema>;
+
+export const getTodosResponseSchemaArray = z.array(getTodosResponseSchema);
+
+export type GetTodosResponseSchemaArray = z.infer<
+  typeof getTodosResponseSchemaArray
+>;

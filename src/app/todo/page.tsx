@@ -1,6 +1,11 @@
 'use client';
 
-import { createTodo, getTodayTodos, markAs } from '@/actions/todo.action';
+import {
+  createDailyTodo,
+  deleteTodo,
+  getDailyTodos,
+  markAs,
+} from '@/actions/todo.action';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,12 +41,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Category, Priority, Status } from '@/generated/prisma-client';
+import type { Category, Priority, Status } from '@/generated/prisma-client';
 import type {
-  CreateTodoSchema,
+  CreateDailyTodoSchema,
   GetTodosResponseSchema,
 } from '@/schemas/todo.schema';
-import { createTodoSchema, markAsTodoSchema } from '@/schemas/todo.schema';
+import { createDailyTodoSchema } from '@/schemas/todo.schema';
 import { format } from 'date-fns';
 import {
   CheckCircle2,
@@ -66,11 +71,11 @@ const TodoList: React.FC = () => {
   const [tasks, setTasks] = useState<GetTodosResponseSchema[]>([]);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isAddingTask, setIsAddingTask] = useState(false);
-  const [newTask, setNewTask] = useState<CreateTodoSchema>({
+  const [newTask, setNewTask] = useState<CreateDailyTodoSchema>({
     title: '',
-    status: Status.pending,
-    priority: Priority.medium,
-    category: Category.study,
+    status: 'pending',
+    priority: 'medium',
+    category: 'study',
   });
   const [selectedFilter, setSelectedFilter] = useState<Status | 'all'>('all');
   const [loading, setLoading] = useState(true);
@@ -82,7 +87,7 @@ const TodoList: React.FC = () => {
 
       try {
         setError(null);
-        const todos = await getTodayTodos(data.user.id);
+        const todos = await getDailyTodos(data.user.id);
         if (todos.success) {
           setTasks(todos.data);
         } else {
@@ -106,14 +111,10 @@ const TodoList: React.FC = () => {
   // Calculate task stats
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter(
-    (task) => task.status === Status.completed
+    (task) => task.status === 'completed'
   ).length;
-  const pendingTasks = tasks.filter(
-    (task) => task.status === Status.pending
-  ).length;
-  const missedTasks = tasks.filter(
-    (task) => task.status === Status.missed
-  ).length;
+  const pendingTasks = tasks.filter((task) => task.status === 'pending').length;
+  const missedTasks = tasks.filter((task) => task.status === 'missed').length;
   const completionRate =
     totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
@@ -123,15 +124,15 @@ const TodoList: React.FC = () => {
 
     try {
       setError(null);
-      const addTodo = createTodoSchema.parse({
+      const addTodo = createDailyTodoSchema.parse({
         title: newTaskTitle.trim(),
         dueTime: {
           hours: 23,
           minutes: 59,
         },
-      });
+      } as CreateDailyTodoSchema);
 
-      const res = await createTodo(data.user.id, addTodo);
+      const res = await createDailyTodo(data.user.id, addTodo);
       if (res.success) {
         const { dueTime, ...rest } = addTodo;
         setTasks((prev) => [
@@ -163,7 +164,7 @@ const TodoList: React.FC = () => {
 
     try {
       setError(null);
-      const parsedTodo = createTodoSchema.safeParse({
+      const parsedTodo = createDailyTodoSchema.safeParse({
         ...newTask,
         title: newTask.title.trim(),
         dueTime: newTask.dueTime || {
@@ -181,7 +182,7 @@ const TodoList: React.FC = () => {
         return;
       }
 
-      const res = await createTodo(data.user.id, parsedTodo.data);
+      const res = await createDailyTodo(data.user.id, parsedTodo.data);
       if (res.success) {
         const { dueTime, ...rest } = parsedTodo.data;
         setTasks((prev) => [
@@ -197,9 +198,9 @@ const TodoList: React.FC = () => {
         setIsAddingTask(false);
         setNewTask({
           title: '',
-          status: Status.pending,
-          priority: Priority.medium,
-          category: Category.study,
+          status: 'pending',
+          priority: 'medium',
+          category: 'study',
         });
       } else {
         setError(
@@ -219,21 +220,8 @@ const TodoList: React.FC = () => {
 
     try {
       setError(null);
-      const markAsTodo = markAsTodoSchema.safeParse({
-        todoId: taskId,
-        status: newStatus,
-      });
 
-      if (!markAsTodo.success) {
-        setError(
-          markAsTodo.error.errors
-            .map((err) => `${err.path.join('.')}: ${err.message}`)
-            .join(', ')
-        );
-        return;
-      }
-
-      const res = await markAs(data.user.id, markAsTodo.data);
+      const res = await markAs(data.user.id, taskId, newStatus);
       if (res.success) {
         setTasks(
           tasks.map((task) =>
@@ -255,8 +243,24 @@ const TodoList: React.FC = () => {
   };
 
   // Delete task
-  const deleteTask = (taskId: string) => {
-    setTasks(tasks.filter((task) => task.id !== taskId));
+  const deleteTask = async (taskId: string) => {
+    if (!data?.user.id) return;
+
+    try {
+      setError(null);
+      const res = await deleteTodo(data.user.id, taskId);
+      if (res.success) {
+        setTasks(tasks.filter((task) => task.id !== taskId));
+      } else {
+        setError(
+          typeof res.error === 'string' ? res.error : 'Failed to delete task'
+        );
+        console.error('Error deleting task:', res.error);
+      }
+    } catch (error) {
+      setError('Failed to delete task');
+      console.error('Error deleting task:', error);
+    }
   };
 
   // Filter tasks based on selected filter
@@ -288,10 +292,12 @@ const TodoList: React.FC = () => {
   // Get status icon
   const getStatusIcon = (status?: Status | null) => {
     switch (status) {
-      case Status.completed:
+      case 'completed':
         return <CheckCircle2 className="h-5 w-5 text-green-500" />;
-      case Status.missed:
+      case 'missed':
         return <XCircle className="h-5 w-5 text-red-500" />;
+      case 'pending':
+        return <Circle className="h-5 w-5 text-yellow-500" />;
       default:
         return <Circle className="h-5 w-5 text-gray-400" />;
     }
