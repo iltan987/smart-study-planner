@@ -107,6 +107,17 @@ export const markAs: MarkAsFunction = async (userId, data) => {
   }
 };
 
+type GetTodayTodosFunction = (
+  userId: string
+) => Promise<Response<undefined, GetTodosResponseSchema[]>>;
+
+export const getTodayTodos: GetTodayTodosFunction = async (userId) => {
+  const start = new Date(new Date().setHours(0, 0, 0, 0));
+  const end = new Date(new Date().setHours(23, 59, 59, 999));
+
+  return getTodos(userId, start, end);
+};
+
 type GetTodosFunction = (
   userId: string,
   start: Date,
@@ -141,10 +152,9 @@ export const getTodos: GetTodosFunction = async (userId, start, end) => {
         const parsedTodo = getTodosResponseSchema.safeParse(todo);
         if (parsedTodo.success) {
           return parsedTodo.data;
-        } else {
-          console.error(parsedTodo.error);
-          return null;
         }
+        console.error('Todo parsing error:', parsedTodo.error);
+        return null;
       })
       .filter((todo): todo is GetTodosResponseSchema => todo !== null);
 

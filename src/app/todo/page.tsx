@@ -1,6 +1,6 @@
 'use client';
 
-import { createTodo, getTodos, markAs } from '@/actions/todo.action';
+import { createTodo, getTodayTodos, markAs } from '@/actions/todo.action';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -74,22 +74,27 @@ const TodoList: React.FC = () => {
   });
   const [selectedFilter, setSelectedFilter] = useState<Status | 'all'>('all');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const getMyTodos = async () => {
       if (!data?.user.id) return;
 
       try {
-        // getTodos expect userId, start and end. Start is the very beginning of the current day and end is the very end of the current day.
-        const start = new Date(new Date().setHours(0, 0, 0, 0));
-        const end = new Date(new Date().setHours(23, 59, 59, 999));
-        const todos = await getTodos(data.user.id, start, end);
+        setError(null);
+        const todos = await getTodayTodos(data.user.id);
         if (todos.success) {
           setTasks(todos.data);
         } else {
+          setError(
+            typeof todos.error === 'string'
+              ? todos.error
+              : 'Failed to fetch todos'
+          );
           console.error('Error fetching todos:', todos.error);
         }
       } catch (error) {
+        setError('Failed to fetch todos');
         console.error('Error fetching todos:', error);
       } finally {
         setLoading(false);
@@ -116,16 +121,14 @@ const TodoList: React.FC = () => {
   const handleQuickAddTask = async () => {
     if (!data?.user.id || !newTaskTitle.trim()) return;
 
-    const endOfToday = new Date(new Date().setHours(23, 59, 59, 999));
-    const addTodo = createTodoSchema.parse({
-      title: newTaskTitle,
-      dueTime: endOfToday,
-    });
-    createTodo(data.user.id, addTodo).then((res) => {
-      const endOfToday = new Date(new Date().setHours(23, 59, 59, 999));
+    try {
+      setError(null);
       const addTodo = createTodoSchema.parse({
         title: newTaskTitle.trim(),
-        dueTime: endOfToday,
+        dueTime: {
+          hours: 23,
+          minutes: 59,
+        },
       });
 
       const res = await createTodo(data.user.id, addTodo);
@@ -143,40 +146,38 @@ const TodoList: React.FC = () => {
         ]);
         setNewTaskTitle('');
       } else {
+        setError(
+          typeof res.error === 'string' ? res.error : 'Failed to create task'
+        );
         console.error('Error creating quick task:', res.error);
       }
-    });
+    } catch (error) {
+      setError('Failed to create task');
+      console.error('Error creating quick task:', error);
+    }
   };
 
   // Handle add task with details
   const handleAddDetailedTask = async () => {
     if (!data?.user.id || !newTask.title.trim()) return;
 
-    const endOfToday = new Date(new Date().setHours(23, 59, 59, 999));
-    const parsedTodo = createTodoSchema.safeParse({
-      title: newTask.title,
-      description: newTask.description,
-      status: newTask.status,
-      priority: newTask.priority,
-      category: newTask.category,
-      dueTime: newTask.dueTime || endOfToday,
-      duration: newTask.duration,
-    });
-    });
-      const endOfToday = new Date(new Date().setHours(23, 59, 59, 999));
+    try {
+      setError(null);
       const parsedTodo = createTodoSchema.safeParse({
         ...newTask,
         title: newTask.title.trim(),
-        dueTime: newTask.dueTime || endOfToday,
+        dueTime: newTask.dueTime || {
+          hours: 23,
+          minutes: 59,
+        },
       });
 
       if (!parsedTodo.success) {
-    if (!parsedTodo.success) {
-      console.error('Error creating detailed task:', parsedTodo.error);
-      return;
-      return;
-    }
-    }
+        setError(
+          parsedTodo.error.errors
+            .map((err) => `${err.path.join('.')}: ${err.message}`)
+            .join(', ')
+        );
         return;
       }
 
@@ -201,29 +202,34 @@ const TodoList: React.FC = () => {
           category: Category.study,
         });
       } else {
+        setError(
+          typeof res.error === 'string' ? res.error : 'Failed to create task'
+        );
         console.error('Error creating detailed task:', res.error);
       }
-    });
+    } catch (error) {
+      setError('Failed to create task');
+      console.error('Error creating detailed task:', error);
+    }
   };
 
   // Update task status
   const updateTaskStatus = async (taskId: string, newStatus: Status) => {
     if (!data?.user.id) return;
 
-    const markAsTodo = markAsTodoSchema.safeParse({
-      todoId: taskId,
-      status: newStatus,
-    });
+    try {
+      setError(null);
       const markAsTodo = markAsTodoSchema.safeParse({
         todoId: taskId,
         status: newStatus,
       });
 
       if (!markAsTodo.success) {
-    if (!markAsTodo.success) {
-      console.error('Error marking task:', markAsTodo.error);
-      return;
-    }
+        setError(
+          markAsTodo.error.errors
+            .map((err) => `${err.path.join('.')}: ${err.message}`)
+            .join(', ')
+        );
         return;
       }
 
@@ -235,9 +241,17 @@ const TodoList: React.FC = () => {
           )
         );
       } else {
+        setError(
+          typeof res.error === 'string'
+            ? res.error
+            : 'Failed to update task status'
+        );
         console.error('Error updating task status:', res.error);
       }
-    });
+    } catch (error) {
+      setError('Failed to update task status');
+      console.error('Error updating task status:', error);
+    }
   };
 
   // Delete task
