@@ -109,9 +109,10 @@ model TextContent {
 }
 
 model FunctionCallContent {
-  id   String @id @default(cuid()) // Unique ID for this function call content
-  name String
-  args Json // Prisma's JSON type
+  id      String @id @default(cuid()) // Unique ID for this function call content
+  name    String
+  args    Json // Prisma's JSON type
+  context Json?
 
   // Relation back to History (one-to-one optional)
   history History?
