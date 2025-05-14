@@ -38,10 +38,17 @@ import {
 
 type SendMessageFunction = (
   session: Session,
-  message: UserTextSchema
+  message: UserTextSchema,
+  userDate: Date,
+  userTimeZone: string
 ) => Promise<Response<TextContentSchema, { text: string; timeSent: Date }>>;
 
-export const sendMessage: SendMessageFunction = async (session, message) => {
+export const sendMessage: SendMessageFunction = async (
+  session,
+  message,
+  userDateTime,
+  userTimeZone
+) => {
   const userId = session.user.id;
   const userName = session.user.name;
 
@@ -104,7 +111,7 @@ export const sendMessage: SendMessageFunction = async (session, message) => {
           text: `# ASSISTANT ROLE
 You are StudyBot, an AI assistant specialized in helping students with academic matters.
 Their name is "${userName}" and you should address them by this name occasionally.
-Current date and time: ${new Date().toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
+Current SERVER date and time: ${new Date().toISOString()}
 
 # BOUNDARIES
 - ONLY respond to queries related to: academics, studying, time management, school life, education planning, and learning strategies.
@@ -118,7 +125,7 @@ Previous memory entries: ${JSON.stringify(userMemoryContents)}
 # RESPONSE STYLE
 - Match the user's communication style (formal/casual, brief/detailed)
 - Use clear, conversational language - avoid technical jargon unless necessary
-- Always convert dates and times to user-friendly formats (e.g., "tomorrow at 3 PM" instead of ISO format)
+- **IMPORTANT: When providing dates and times to the user in your textual responses, ALWAYS use natural, user-friendly formats (e.g., "tomorrow at 3 PM", "next Friday afternoon").**
 - When discussing deadlines or time-related concepts, add helpful context (e.g., "That's in 3 days" or "You have 48 hours remaining")
 - Structure complex answers with headings and bullet points for readability
 - Use analogies and examples to explain difficult concepts
@@ -143,75 +150,44 @@ All memory entries should be stored in English.
 ## Creating Todos
 Use 'createTodo' function when users mention tasks they need to complete.
 Required parameter: title
-Common optional parameters: description, category (study/assignment/exam/work/gym/other), priority (low/medium/high), dueTime (ISO format)
+Common optional parameters: description, category (study/assignment/exam/work/gym/other), priority (low/medium/high), dueTime.
 
-Important: You can create todos with any dueTime - past, present, or future dates are all acceptable. This is useful for:
-- Recording completed tasks retroactively
-- Tracking missed deadlines
-- Planning future activities
+For the dueTime, extract the user's time expression and convert it into a proper structure:
+dueTime: {
+  duration_to_add: {
+    years?: number,
+    months?: number,
+    weeks?: number,
+    days?: number,
+    hours?: number,
+    minutes?: number,
+    seconds?: number,
+  },
+  duration_to_set: {
+    year?: number,
+    month?: number,
+    date?: number,
+    hours?: number,
+    minutes?: number,
+    seconds?: number,
+  },
+}
+- The server will provide the user's current date/time and timezone.
+- Only fill in the relevant fields for add and/or set based on the user's input.
+- If the user specifies an exact time (e.g., "at 3 P.M."), use only set (e.g., set: { hours: 15, minutes: 0 }).
+- If the user specifies a relative time (e.g., "in 2 hours"), use only add (e.g., add: { hours: 2 }).
+- If both are needed (e.g., "tomorrow at 3 P.M."), use both (e.g., add: { days: 1 }, set: { hours: 15, minutes: 0 }).
+- Do NOT perform or expect the calculation or resulting date/time yourself.
 
 Examples:
-- User: "Remind me to study calculus tomorrow at 3pm."
-  Action: Call createTodo(title='Study calculus', category='study', dueTime='[TOMORROW]T15:00:00Z')
-- User: "Need to finish my essay by Friday night, it's super important!"
-  Action: Call createTodo(title='Finish essay', category='assignment', priority='high', dueTime='[FRIDAY]T20:00:00Z')
-- User: "I had a chemistry lab yesterday that I need to write up."
-  Action: Call createTodo(title='Write up chemistry lab', category='assignment', dueTime='[YESTERDAY]T18:00:00Z')
-- User: "I missed my study group meeting last Monday at 5pm."
-  Action: Call createTodo(title='Study group meeting', category='study', dueTime='[LAST_MONDAY]T17:00:00Z', status='missed')
+- "Remind me to study calculus at 3 P.M.":
+  dueTime: { duration_to_set: { hours: 15, minutes: 0 } }
+- "Remind me to study calculus in 2 hours":
+  dueTime: { duration_to_add: { hours: 2 } }
+- "Remind me to study calculus tomorrow at 3 P.M.":
+  dueTime: { duration_to_add: { days: 1 }, duration_to_set: { hours: 15, minutes: 0 } }
 
-## Retrieving Todos
-Use 'getTodos' function to fetch the user's todos within a specific date range.
-Required parameters: start (ISO date), end (ISO date)
-
-Examples:
-- User: "What tasks do I have this week?"
-  Action: Call getTodos(start='[MONDAY_THIS_WEEK]T00:00:00Z', end='[SUNDAY_THIS_WEEK]T23:59:59Z')
-- User: "Show me my todos for tomorrow."
-  Action: Call getTodos(start='[TOMORROW]T00:00:00Z', end='[TOMORROW]T23:59:59Z')
-- User: "What assignments do I have due next month?"
-  Action: Call getTodos(start='[FIRST_DAY_NEXT_MONTH]T00:00:00Z', end='[LAST_DAY_NEXT_MONTH]T23:59:59Z')
-- User: "What tasks did I miss last week?"
-  Action: Call getTodos(start='[MONDAY_LAST_WEEK]T00:00:00Z', end='[SUNDAY_LAST_WEEK]T23:59:59Z')
-
-## Updating Todos
-Use 'markTodoAs' function with these statuses: pending, completed, missed
-
-IMPORTANT: The markTodoAs function requires a todoId. NEVER ask the user for this ID. Instead, obtain it through one of these methods:
-
-1. For recently created todos:
-   - When createTodo is called, it returns a response with {status: 'success', todoId: 'some-id'}
-   - Store this todoId in your conversation context
-   - Use this todoId when the user refers to the todo they just created
-
-2. For existing todos:
-   - First call getTodos with an appropriate date range to retrieve todos
-   - Find the matching todo in the returned list based on the user's description
-   - Extract the todoId from the matching todo
-   - Then call markTodoAs with this todoId
-
-Process examples:
-
-Example 1 (Recently created todo):
-- User: "Create a task to study for my chemistry exam tomorrow"
-- You call: createTodo(title='Study for chemistry exam', dueTime='[TOMORROW]T18:00:00Z')
-- Function returns: {status: 'success', todoId: 'abc123'}
-- User then says: "I actually finished that already"
-- You call: markTodoAs(todoId='abc123', status='completed')
-
-Example 2 (Existing todo):
-- User: "I finished my math homework from yesterday"
-- First call: getTodos(start='[YESTERDAY]T00:00:00Z', end='[TODAY]T00:00:00Z')
-- This returns: [{id: 'xyz789', title: 'Math homework', ...}, {...}]
-- Then call: markTodoAs(todoId='xyz789', status='completed')
-
-Example 3 (Todo described by user):
-- User: "Mark my physics lab report as completed"
-- First call: getTodos(start='[LAST_WEEK]T00:00:00Z', end='[NEXT_WEEK]T23:59:59Z') // wide date range to find relevant todos
-- Find todo with title containing "physics lab report" in results
-- Then call: markTodoAs(todoId='found-id', status='completed')
-
-Important: When referring to dates and times in your responses, ALWAYS use natural, conversational formats (e.g., "Friday afternoon" or "next Monday at 2 PM") instead of technical formats.`.trim(),
+When providing dates and times in your responses, ALWAYS use natural, conversational formats (e.g., "Friday afternoon" or "next Monday at 2 PM") instead of technical formats.`.trim(),
         },
       ],
     },
@@ -246,7 +222,11 @@ Important: When referring to dates and times in your responses, ALWAYS use natur
 
   const response = await chat.sendMessage(parsedMessage.data.text);
 
-  const result = await executeResponse(chat, response.response, userId);
+  const result = await executeResponse(chat, response.response, {
+    userId,
+    userDateTime,
+    userTimeZone,
+  });
 
   const modelResponse: ModelTextSchema = {
     role: TextContentRole.model,
@@ -268,7 +248,15 @@ Important: When referring to dates and times in your responses, ALWAYS use natur
 const executeResponse = async (
   chat: ChatSession,
   initialResponse: GenerateContentResult['response'],
-  userId: string
+  {
+    userId,
+    userDateTime,
+    userTimeZone,
+  }: {
+    userId: string;
+    userDateTime: Date;
+    userTimeZone: string;
+  }
 ) => {
   let currentResponse = initialResponse;
 
@@ -280,7 +268,13 @@ const executeResponse = async (
     }
 
     const funcResponses = await Promise.all(
-      functionCalls.map((funcCall) => makeFunctionCall(funcCall, userId))
+      functionCalls.map((funcCall) =>
+        makeFunctionCall(funcCall, {
+          userId,
+          userDateTime,
+          userTimeZone,
+        })
+      )
     );
 
     currentResponse = await chat
@@ -299,21 +293,37 @@ const executeResponse = async (
 
 const makeFunctionCall = async (
   funcCall: FunctionCall,
-  userId: string
+  context: {
+    userId: string;
+    userDateTime: Date;
+    userTimeZone: string;
+  }
 ): Promise<FunctionResponse | undefined> => {
   let resp: FunctionResponse | undefined;
   if (funcCall.name === saveUserInfo.name) {
-    saveFunctionCall(funcCall);
-    resp = await saveUserInfo(funcCall, userId);
+    saveFunctionCall(funcCall, context);
+    resp = {
+      name: saveUserInfo.name,
+      response: (await saveUserInfo(funcCall, context)) as object,
+    };
   } else if (funcCall.name === createTodo.name) {
-    saveFunctionCall(funcCall);
-    resp = await createTodo(funcCall, userId);
+    saveFunctionCall(funcCall, context);
+    resp = {
+      name: createTodo.name,
+      response: (await createTodo(funcCall, context)) as object,
+    };
   } else if (funcCall.name === markTodoAs.name) {
-    saveFunctionCall(funcCall);
-    resp = await markTodoAs(funcCall, userId);
+    saveFunctionCall(funcCall, context);
+    resp = {
+      name: markTodoAs.name,
+      response: (await markTodoAs(funcCall, context)) as object,
+    };
   } else if (funcCall.name === getTodos.name) {
-    saveFunctionCall(funcCall);
-    resp = await getTodos(funcCall, userId);
+    saveFunctionCall(funcCall, context);
+    resp = {
+      name: getTodos.name,
+      response: (await getTodos(funcCall, context)) as object,
+    };
   }
   if (resp) {
     saveFunctionResponse(resp);
@@ -321,13 +331,20 @@ const makeFunctionCall = async (
   return resp;
 };
 
-const saveFunctionCall = async (funcCall: FunctionCall) => {
+const saveFunctionCall = async (
+  funcCall: FunctionCall,
+  context: {
+    userId?: string;
+    userDateTime?: Date;
+    userTimeZone?: string;
+  }
+) => {
   const functionCall: FunctionCallContentSchema = {
     type: ContentType.function_call,
     ...funcCall,
   };
 
-  saveFunctionCallMessage(functionCall);
+  saveFunctionCallMessage(functionCall, context);
 };
 
 const saveFunctionResponse = async (funcResponse: FunctionResponse) => {

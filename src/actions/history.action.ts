@@ -225,11 +225,17 @@ export const saveTextMessage: SaveTextMessageFunction = async (message) =>
   });
 
 type SaveFunctionCallMessageFunction = (
-  message: FunctionCallContentSchema
+  message: FunctionCallContentSchema,
+  context: {
+    userId?: string;
+    userDateTime?: Date;
+    userTimeZone?: string;
+  }
 ) => Promise<Response<FunctionCallContentSchema, string>>;
 
 export const saveFunctionCallMessage: SaveFunctionCallMessageFunction = async (
-  message
+  message,
+  context
 ) =>
   await withAuth(async (session) => {
     if (!session) {
@@ -255,6 +261,7 @@ export const saveFunctionCallMessage: SaveFunctionCallMessageFunction = async (
           functionCallContent: {
             create: {
               ...rest,
+              context,
             },
           },
         },
@@ -262,7 +269,7 @@ export const saveFunctionCallMessage: SaveFunctionCallMessageFunction = async (
           id: true,
         },
       }),
-      saveFunctionCallHistory(session.user.id, parsedMessage.data),
+      saveFunctionCallHistory(session.user.id, parsedMessage.data, context),
     ]);
 
     return {

@@ -66,11 +66,17 @@ export default function ChatBotPage() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    setInputValue('');
-    setIsLoading(true);
+
+    const currentDate = new Date();
+    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     try {
-      const response = await sendMessage(session, userMessage);
+      const response = await sendMessage(
+        session,
+        userMessage,
+        currentDate,
+        userTimeZone
+      );
 
       if (response.success) {
         setMessages((prev) => [

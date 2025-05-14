@@ -209,32 +209,6 @@ export const getTodos: GetTodosFunction = async (userId, start, end) => {
   }
 };
 
-type GetDailyTodosFunction = (
-  userId: string
-) => Promise<
-  Response<GetTodosResponseSchemaArray, GetTodosResponseSchemaArray>
->;
-
-export const getDailyTodos: GetDailyTodosFunction = async (userId) => {
-  const now = new Date();
-
-  // Start of the day: Set time to 00:00:00.000
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  // End of the day: Set time to 23:59:59.999
-  const end = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    23,
-    59,
-    59,
-    999
-  );
-
-  return getTodos(userId, start, end);
-};
-
 type DeleteTodoFunction = (
   userId: string,
   todoId: string

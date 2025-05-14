@@ -3,7 +3,7 @@
 import {
   createDailyTodo,
   deleteTodo,
-  getDailyTodos,
+  getTodos,
   markAs,
 } from '@/actions/todo.action';
 import { Badge } from '@/components/ui/badge';
@@ -87,7 +87,15 @@ const TodoList: React.FC = () => {
 
       try {
         setError(null);
-        const todos = await getDailyTodos(data.user.id);
+        const date = new Date();
+
+        // Get start as the beginning of the day (00:00:00.000)
+        const start = new Date(date);
+        start.setHours(0, 0, 0, 0);
+        // Get end as the end of the day (23:59:59.999)
+        const end = new Date(date);
+        end.setHours(23, 59, 59, 999);
+        const todos = await getTodos(data.user.id, start, end);
         if (todos.success) {
           setTasks(todos.data);
         } else {

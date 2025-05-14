@@ -49,9 +49,68 @@ export const functionDeclarations: FunctionDeclaration[] | undefined = [
           description: 'The category of the todo item. Default is "study"',
         },
         dueTime: {
-          type: SchemaType.STRING,
-          format: 'date-time',
-          description: 'The due time of the todo item',
+          type: SchemaType.OBJECT,
+          description:
+            "The due time of the todo item, extracted from user's expression. Use add/set structure as appropriate.",
+          properties: {
+            duration_to_add: {
+              type: SchemaType.OBJECT,
+              description:
+                "Relative time to add to the user's current date/time (e.g., { hours: 2, days: 1 })",
+              properties: {
+                years: {
+                  type: SchemaType.INTEGER,
+                  description: 'Years to add',
+                },
+                months: {
+                  type: SchemaType.INTEGER,
+                  description: 'Months to add',
+                },
+                weeks: {
+                  type: SchemaType.INTEGER,
+                  description: 'Weeks to add',
+                },
+                days: { type: SchemaType.INTEGER, description: 'Days to add' },
+                hours: {
+                  type: SchemaType.INTEGER,
+                  description: 'Hours to add',
+                },
+                minutes: {
+                  type: SchemaType.INTEGER,
+                  description: 'Minutes to add',
+                },
+                seconds: {
+                  type: SchemaType.INTEGER,
+                  description: 'Seconds to add',
+                },
+              },
+            },
+            duration_to_set: {
+              type: SchemaType.OBJECT,
+              description:
+                'Absolute time to set (e.g., { hours: 15, minutes: 0 })',
+              properties: {
+                year: { type: SchemaType.INTEGER, description: 'Year to set' },
+                month: {
+                  type: SchemaType.INTEGER,
+                  description: 'Month to set',
+                },
+                date: {
+                  type: SchemaType.INTEGER,
+                  description: 'Day of month to set',
+                },
+                hours: { type: SchemaType.INTEGER, description: 'Hour to set' },
+                minutes: {
+                  type: SchemaType.INTEGER,
+                  description: 'Minute to set',
+                },
+                seconds: {
+                  type: SchemaType.INTEGER,
+                  description: 'Second to set',
+                },
+              },
+            },
+          },
         },
         duration: {
           type: SchemaType.NUMBER,

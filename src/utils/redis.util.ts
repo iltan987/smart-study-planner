@@ -79,7 +79,12 @@ export async function getFunctionCallHistory(
 
 export async function saveFunctionCallHistory(
   userId: string,
-  data: FunctionCallContentSchema
+  data: FunctionCallContentSchema,
+  context: {
+    userId?: string;
+    userDateTime?: Date;
+    userTimeZone?: string;
+  }
 ) {
   const redis = await getRedisClient();
   const parsedData = functionCallContentSchema.parse(data);
@@ -88,6 +93,7 @@ export async function saveFunctionCallHistory(
     time: new Date().toISOString(),
     name: parsedData.name,
     args: JSON.stringify(parsedData.args),
+    context: JSON.stringify(context),
   };
 
   await redis.hSet(key, hSetData);
