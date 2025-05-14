@@ -58,6 +58,9 @@ export default function ChatBotPage() {
     if (!isAuthenticated) return;
     if (!inputValue.trim()) return;
 
+    setIsLoading(true);
+    setInputValue('');
+
     const userMessage: UserTextSchema = {
       text: inputValue,
       timeSent: new Date(),
