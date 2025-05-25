@@ -11,6 +11,11 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'Smart Study Planner',
   description: 'Manage your academic tasks and schedule effectively.',
+  openGraph: {
+    title: 'Smart Study Planner',
+    description: 'Manage your academic tasks and schedule effectively.',
+    siteName: 'Smart Study Planner',
+  },
 };
 
 export default function RootLayout({
