@@ -1,20 +1,16 @@
-'use client';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
-import { ThemeToggle } from '@/components/theme-toggle';
-
-const AuthLayout = ({
+export default function AuthLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) => {
+}) {
   return (
-    <div className="relative">
-      <div className="absolute right-4 top-4">
-        <ThemeToggle isSidebar={false} />
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background">
+      <div className="absolute top-6 right-6">
+        <ThemeToggle />
       </div>
-      {children}
+      <div className="flex w-full max-w-4xl flex-col gap-6">{children}</div>
     </div>
   );
-};
-
-export default AuthLayout;
+}

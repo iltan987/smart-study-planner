@@ -1,30 +1,34 @@
-import MainLayout from '@/components/main-layout';
 import { Toaster } from '@/components/ui/sonner';
-import { AuthProvider } from '@/providers/auth-provider';
-import { ThemeProvider } from '@/providers/theme-provider';
+import type { Metadata } from 'next';
+import { ThemeProvider } from 'next-themes';
+import { Inter } from 'next/font/google';
 import './globals.css';
 
-const RootLayout = ({
+const inter = Inter({ subsets: ['latin'] });
+
+export const metadata: Metadata = {
+  title: 'Smart Study Planner',
+  description: 'Manage your academic tasks and schedule effectively.',
+};
+
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
-}>) => {
+}>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <body className={inter.className}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProvider>
-            <Toaster richColors />
-            <MainLayout>{children}</MainLayout>
-          </AuthProvider>
+          {children}
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
   );
-};
-export default RootLayout;
+}
