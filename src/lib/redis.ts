@@ -1,35 +1,17 @@
-import { createClient, type RedisClientType } from 'redis';
+import { createClient } from 'redis';
 
-let redisClient: RedisClientType | undefined;
+const globalForRedis = globalThis as unknown as { redis: RedisClient };
+const client = createClient();
 
-async function getRedisClient(): Promise<RedisClientType> {
-  if (!redisClient) {
-    const client: RedisClientType = createClient({
-      url: process.env.REDIS_URL,
-    });
+client.on('connect', () => console.log('Redis Client Connected'));
+client.on('ready', () => console.log('Redis Client Ready'));
+client.on('end', () => console.log('Redis Client Disconnected'));
+client.on('error', (err) => console.log('Redis Client Error', err));
+client.on('reconnecting', () => console.log('Redis Client Reconnecting'));
 
-    client.on('error', (err) => console.error('Redis Client Error', err));
-    client.on('connect', () => console.log('Connected to Redis'));
-    client.on('reconnecting', () => console.log('Reconnecting to Redis...'));
-    client.on('end', () => console.log('Disconnected from Redis'));
+await client.connect();
 
-    // Ensure the client is ready before returning it
-    // Don't try to connect if already connected or connecting
-    if (!client.isOpen) {
-      try {
-        await client.connect();
-        redisClient = client; // Assign only after successful connection
-      } catch (err) {
-        console.error('Failed to connect to Redis:', err);
-        // Optionally re-throw or handle appropriately
-        throw err;
-      }
-    } else {
-      // If already open (e.g., from a previous call), use the existing client
-      redisClient = client;
-    }
-  }
-  return redisClient;
-}
-
-export default getRedisClient;
+globalForRedis.redis = client;
+export const redis = globalForRedis.redis || client;
+if (process.env.NODE_ENV !== 'production') globalForRedis.redis = client;
+export type RedisClient = typeof client;
