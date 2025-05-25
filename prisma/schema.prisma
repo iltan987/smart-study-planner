@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma-client"
 }
 
 datasource db {
@@ -8,194 +7,192 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
-  password      String
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  memory        Memory[]
-  history       History[]
-  profile       Profile?
-  todos         Todo[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Account {
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([provider, providerAccountId])
-}
-
-model Memory {
-  id      String @id @default(cuid())
-  userId  String
-  content String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-enum ContentType {
-  text
-  function_call
-  function_response
-}
-
-model History {
-  id String @id @default(cuid())
-
-  time DateTime    @default(now())
-  type ContentType
-
-  // --- Polymorphic Relationship Fields ---
-  // Foreign keys to the specific content types.
-  // Only ONE of these should be set for any given History record.
-  // The @unique constraint ensures one content record belongs to at most one history record.
-  textContentId             String? @unique
-  functionCallContentId     String? @unique
-  functionResponseContentId String? @unique
-
-  // --- Relations ---
-  // Optional relations to the specific content models.
-  textContent             TextContent?             @relation(fields: [textContentId], references: [id], onDelete: Cascade)
-  functionCallContent     FunctionCallContent?     @relation(fields: [functionCallContentId], references: [id], onDelete: Cascade)
-  functionResponseContent FunctionResponseContent? @relation(fields: [functionResponseContentId], references: [id], onDelete: Cascade)
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([type])
-  @@index([time])
-}
-
-enum TextContentRole {
-  user
-  model
-}
-
-model TextContent {
-  id       String          @id @default(cuid()) // Unique ID for this text content
-  role     TextContentRole
-  text     String
-  timeSent DateTime
-
-  // Relation back to History (one-to-one optional)
-  history History?
-}
-
-model FunctionCallContent {
-  id      String @id @default(cuid()) // Unique ID for this function call content
-  name    String
-  args    Json // Prisma's JSON type
-  context Json?
-
-  // Relation back to History (one-to-one optional)
-  history History?
-}
-
-model FunctionResponseContent {
-  id       String @id @default(cuid()) // Unique ID for this function response content
-  name     String
-  response Json // Prisma's JSON type
-
-  // Relation back to History (one-to-one optional)
-  history History?
-}
-
-enum Language {
-  EN
-  TR
-  FA
-}
-
+// --- Enums ---
 enum Gender {
   MALE
   FEMALE
   OTHER
+  PREFER_NOT_TO_SAY
 }
 
-model Profile {
-  gender    Gender?
-  dob       DateTime?       @db.Date
-  language  Language        @default(EN)
-  education EducationInfo[]
+enum Language {
+  ENGLISH
+  TURKISH
+  PERSIAN
+}
 
+enum TodoPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TodoCategory {
+  STUDY
+  ASSIGNMENT
+  EXAM
+  WORK
+  GYM
+  OTHER
+}
+
+enum TodoStatus {
+  PENDING
+  COMPLETED
+  MISSED
+}
+
+enum AiInteractionContentType {
+  USER_INPUT_MESSAGE
+  MODEL_RESPONSE_MESSAGE
+  FUNCTION_CALL_REQUEST
+  FUNCTION_CALL_RESULT
+}
+
+enum MessageRating {
+  UPVOTE
+  DOWNVOTE
+}
+
+// --- Models ---
+model User {
+  id       String @id @default(cuid())
+  name     String
+  email    String @unique
+  password String
+
+  notificationsEnabled Boolean @default(false)
+
+  profile             UserProfile?
+  todos               Todo[]
+  calendarEvents      CalendarEvent[]
+  aiInteractionEvents AiInteractionEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserProfile {
+  id     String @id @default(cuid())
+  userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String @id
-}
 
-model EducationInfo {
-  id     String   @id @default(cuid())
-  school String
-  degree String
-  field  String
-  start  DateTime @db.Date
-  gpa    Float
+  birthday DateTime?
+  gender   Gender?
+  language Language?
 
-  profile       Profile @relation(fields: [profileUserId], references: [userId], onDelete: Cascade)
-  profileUserId String
-}
+  school              String?
+  degree              String?
+  fieldOfStudy        String?
+  educationStartDate  DateTime?
+  isFinished          Boolean?  @default(false)
+  finishDate          DateTime?
+  estimatedFinishDate DateTime?
+  gpa                 Float?
 
-enum Priority {
-  low
-  medium
-  high
-}
-
-enum Category {
-  study
-  assignment
-  exam
-  work
-  gym
-  other
-}
-
-enum Status {
-  pending
-  completed
-  missed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Todo {
-  id          String    @id @default(cuid())
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  isAllDay Boolean   @default(false)
+  date     DateTime? @db.Date
+
   title       String
   description String?
-  priority    Priority  @default(medium)
-  category    Category  @default(study)
   dueTime     DateTime?
-  duration    Int? // Duration in minutes
-  status      Status    @default(pending)
-  isDeleted   Boolean   @default(false)
+  priority    TodoPriority @default(MEDIUM)
+  category    TodoCategory @default(STUDY)
+  duration    Int?
+  status      TodoStatus   @default(PENDING)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  User   User   @relation(fields: [userId], references: [id])
+  @@index([userId, dueTime])
+  @@index([userId, date, isAllDay])
+  @@index([userId, status])
+  @@index([userId, priority, dueTime])
+  @@index([userId, priority, date, isAllDay])
+}
+
+model CalendarEvent {
+  id     String @id @default(cuid())
   userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title     String
+  startTime DateTime
+  endTime   DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, startTime, endTime])
+}
+
+// --- Central AI Interaction Event Model ---
+model AiInteractionEvent {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  timestamp DateTime                 @default(now())
+  type      AiInteractionContentType
+
+  // Foreign keys to specific content types
+  userInputMessageId     String? @unique
+  modelResponseMessageId String? @unique
+  functionCallRequestId  String? @unique
+  functionCallResultId   String? @unique
+
+  // Relations to specific content models
+  userInputMessage     UserInputMessage?      @relation("UserInputMessageToEvent", fields: [userInputMessageId], references: [id], onDelete: Cascade)
+  modelResponseMessage ModelResponseMessage?  @relation("ModelResponseMessageToEvent", fields: [modelResponseMessageId], references: [id], onDelete: Cascade)
+  functionCallRequest  AiFunctionCallRequest? @relation("FunctionCallRequestToEvent", fields: [functionCallRequestId], references: [id], onDelete: Cascade)
+  functionCallResult   AiFunctionCallResult?  @relation("FunctionCallResultToEvent", fields: [functionCallResultId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, timestamp])
+  @@index([userId, timestamp], name: "idx_user_thread_time")
+  @@index([type])
+}
+
+// --- Specific Content Models for AI Interactions ---
+
+model UserInputMessage {
+  id   String @id @default(cuid())
+  text String
+
+  event AiInteractionEvent? @relation("UserInputMessageToEvent")
+}
+
+model ModelResponseMessage {
+  id     String         @id @default(cuid())
+  text   String
+  rating MessageRating?
+
+  event AiInteractionEvent? @relation("ModelResponseMessageToEvent")
+}
+
+model AiFunctionCallRequest {
+  id   String @id @default(cuid())
+  name String
+  args Json
+
+  event AiInteractionEvent? @relation("FunctionCallRequestToEvent")
+}
+
+model AiFunctionCallResult {
+  id       String @id @default(cuid())
+  name     String
+  response Json
+
+  event AiInteractionEvent? @relation("FunctionCallResultToEvent")
 }
