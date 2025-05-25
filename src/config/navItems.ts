@@ -54,7 +54,11 @@ export const navUserNavItems: NavigationItem[] = [
 ];
 
 export function getPageTitle(pathname: string): string {
-  const currentNavItem = navItems.find(
+  const currentNavItem = [
+    ...navItems,
+    ...bottomNavItems,
+    ...navUserNavItems,
+  ].find(
     (item) =>
       item.href === pathname ||
       (item.href !== '/' && pathname.startsWith(item.href))
