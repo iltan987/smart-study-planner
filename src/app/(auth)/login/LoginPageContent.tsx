@@ -62,14 +62,14 @@ export default function LoginPageContent() {
           return;
         }
 
-        if (result.ok) {
-          router.push(callbackUrl);
-        } else if (result.error) {
+        if (result.error) {
           if (result.error === 'CredentialsSignin') {
             setError('Invalid email or password. Please try again.');
           } else {
             setError('Login failed. Please try again.');
           }
+        } else if (result.ok) {
+          router.push(callbackUrl);
         } else {
           setError('Login failed. Please try again.');
         }

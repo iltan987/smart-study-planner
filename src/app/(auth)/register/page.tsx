@@ -73,10 +73,9 @@ export default function RegisterPageContent() {
             });
           }
         }
-        return;
+      } else {
+        router.push('/');
       }
-
-      router.push('/');
     } catch (err) {
       console.error('Registration submission error:', err);
       setError('An unexpected error occurred. Please try again.');
