@@ -25,7 +25,7 @@ export async function getCalendarEvents(
   input: GetCalendarEventsInputSchema
 ): Promise<Result<CalendarEvent[], GetCalendarEventsInputSchema>> {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     return {
       success: false,
       error: 'Unauthorized',
@@ -100,7 +100,7 @@ export async function createCalendarEvent(
   input: CreateCalendarEventInputSchema
 ): Promise<Result<CalendarEvent, CreateCalendarEventInputSchema>> {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     return {
       success: false,
       error: 'Unauthorized',
@@ -203,7 +203,7 @@ export async function deleteCalendarEvent(
   input: DeleteCalendarEventInputSchema
 ): Promise<Result<undefined, DeleteCalendarEventInputSchema>> {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     return {
       success: false,
       error: 'Unauthorized',
@@ -265,7 +265,7 @@ export async function updateCalendarEvent(
   input: UpdateCalendarEventInputSchema
 ): Promise<Result<CalendarEvent, UpdateCalendarEventInputSchema>> {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     return {
       success: false,
       error: 'Unauthorized',

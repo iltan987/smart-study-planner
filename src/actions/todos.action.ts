@@ -23,7 +23,7 @@ export async function getTodos(
   input: GetTodosInputSchema
 ): Promise<Result<Todo[], GetTodosInputSchema>> {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     return {
       success: false,
       error: 'Unauthorized',
@@ -84,7 +84,7 @@ export async function createTodo(
   input: CreateTodoInputSchema
 ): Promise<Result<Todo, CreateTodoInputSchema>> {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     return {
       success: false,
       error: 'Unauthorized',
@@ -169,7 +169,7 @@ export async function deleteTodo(
   input: DeleteTodoInputSchema
 ): Promise<Result<undefined, DeleteTodoInputSchema>> {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     return {
       success: false,
       error: 'Unauthorized',
@@ -229,7 +229,7 @@ export async function updateTodoStatus(
   input: UpdateTodoStatusOnlyInput
 ): Promise<Result<undefined, UpdateTodoStatusOnlyInput>> {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     return {
       success: false,
       error: 'Unauthorized',
