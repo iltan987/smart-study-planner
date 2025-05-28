@@ -60,20 +60,15 @@ export async function hashPassword(password: string): Promise<string> {
     KEY_LENGTH_BITS
   );
 
-  // Format: iterations:salt:key (all hex)
-  return [
-    ITERATIONS.toString(16),
-    ab2hex(salt.buffer),
-    ab2hex(derivedBits),
-  ].join(':');
+  // Format: salt:key (all hex)
+  return [ab2hex(salt.buffer), ab2hex(derivedBits)].join(':');
 }
 
 export async function comparePassword(
   password: string,
   hashedPassword: string
 ): Promise<boolean> {
-  const [iterationsStr, saltHex, storedKeyHex] = hashedPassword.split(':');
-  const iterations = parseInt(iterationsStr, 16);
+  const [saltHex, storedKeyHex] = hashedPassword.split(':');
   const salt = hex2ab(saltHex);
   const storedKey = hex2ab(storedKeyHex);
 
@@ -90,7 +85,7 @@ export async function comparePassword(
     {
       name: ALGORITHM,
       salt,
-      iterations,
+      iterations: ITERATIONS,
       hash: HASH_ALGORITHM,
     },
     key,
