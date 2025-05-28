@@ -297,7 +297,10 @@ export default function TodosPage() {
 
     try {
       const payload: CreateTodoInputSchema = {
-        ...formData,
+        title: formData.title,
+        ...Object.fromEntries(
+          Object.entries(formData).filter(([_, v]) => v !== undefined)
+        ),
         date: convertedSelectedDateForServer,
         clientTimezone: userTimezone,
       };
