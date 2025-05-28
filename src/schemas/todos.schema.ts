@@ -3,12 +3,18 @@ import { z } from 'zod';
 import { hoursMinutesSchema, yearMonthDateSchema } from './time.schema';
 
 export const addTodoFormSchema = z.object({
-  title: z.string().refine((val) => val.trim().length > 0, {
-    message: 'Title is required.',
-  }),
-  description: z.string(),
+  title: z
+    .string()
+    .nonempty({ message: 'Title is required.' })
+    .max(255, { message: 'Title must be 255 characters or less.' })
+    .refine((val) => val.trim().length > 0, {
+      message: 'Title is required.',
+    }),
+  description: z
+    .string()
+    .max(1000, { message: 'Description must be 1000 characters or less.' }),
   timeOfDay: z.string(),
-  duration: z.number().positive(),
+  duration: z.string(),
   priority: z.nativeEnum(TodoPriority),
   category: z.nativeEnum(TodoCategory),
   status: z.nativeEnum(TodoStatus),
@@ -18,21 +24,22 @@ export type AddTodoFormSchema = z.infer<typeof addTodoFormSchema>;
 export const createTodoInputSchema = z.object({
   title: z
     .string()
-    .min(1, { message: 'Title is required.' })
-    .max(255, { message: 'Title must be 255 characters or less.' }),
+    .nonempty({ message: 'Title is required.' })
+    .max(255, { message: 'Title must be 255 characters or less.' })
+    .refine((val) => val.trim().length > 0, {
+      message: 'Title is required.',
+    }),
   description: z
     .string()
     .max(1000, { message: 'Description must be 1000 characters or less.' })
-    .optional()
-    .nullable(),
+    .transform((val) => (val === '' ? undefined : val))
+    .optional(),
   date: yearMonthDateSchema,
-  timeOfDay: hoursMinutesSchema.optional().nullable(),
+  timeOfDay: hoursMinutesSchema.optional(),
   duration: z
     .number()
-    .int()
     .positive({ message: 'Duration must be a positive number.' })
-    .optional()
-    .nullable(),
+    .optional(),
   priority: z.nativeEnum(TodoPriority).default(TodoPriority.MEDIUM).optional(),
   category: z.nativeEnum(TodoCategory).default(TodoCategory.STUDY).optional(),
   status: z.nativeEnum(TodoStatus).default(TodoStatus.PENDING).optional(),

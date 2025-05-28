@@ -51,7 +51,7 @@ const initialFormState: AddTodoFormSchema = {
   title: '',
   description: '',
   timeOfDay: '',
-  duration: NaN,
+  duration: '',
   priority: TodoPriority.MEDIUM,
   category: TodoCategory.STUDY,
   status: TodoStatus.PENDING,
@@ -89,7 +89,7 @@ export function AddTodoDialog({
       ...formData,
       description:
         formData.description === '' ? undefined : formData.description,
-      duration: isNaN(formData.duration) ? undefined : formData.duration,
+      duration: formData.duration ? parseInt(formData.duration, 10) : undefined,
       timeOfDay,
     });
   };
@@ -159,13 +159,7 @@ export function AddTodoDialog({
                   <FormItem>
                     <FormLabel>Duration (min)</FormLabel>
                     <FormControl>
-                      <Input
-                        {...field}
-                        type="number"
-                        min={0}
-                        value={isNaN(field.value) ? '' : field.value}
-                        onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                      />
+                      <Input {...field} type="number" min={0} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
