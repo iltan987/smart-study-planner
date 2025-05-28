@@ -1,7 +1,7 @@
 import { createClient } from 'redis';
 
 const globalForRedis = globalThis as unknown as { redis: RedisClient };
-const client = createClient();
+const client = createClient({ url: process.env.REDIS_URL });
 
 client.on('connect', () => console.log('Redis Client Connected'));
 client.on('ready', () => console.log('Redis Client Ready'));
