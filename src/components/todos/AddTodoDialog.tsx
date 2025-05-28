@@ -79,9 +79,7 @@ export function AddTodoDialog({
   const handleSubmit = (formData: AddTodoFormSchema) => {
     let timeOfDay: { hours: number; minutes: number } | undefined = undefined;
     if (formData.timeOfDay !== '') {
-      const [hoursStr, minutesStr] = formData.timeOfDay.split(':');
-      const hours = parseInt(hoursStr, 10);
-      const minutes = parseInt(minutesStr, 10);
+      const [hours, minutes] = formData.timeOfDay.split(':').map(Number);
       timeOfDay = { hours, minutes };
     }
 
@@ -89,7 +87,7 @@ export function AddTodoDialog({
       ...formData,
       description:
         formData.description === '' ? undefined : formData.description,
-      duration: formData.duration ? parseInt(formData.duration, 10) : undefined,
+      duration: formData.duration ? Number(formData.duration) : undefined,
       timeOfDay,
     });
   };

@@ -14,10 +14,12 @@ export const addCalendarEventFormSchema = z
     (data) => {
       const start = data.startTimeLocal;
       const end = data.endTimeLocal;
+      const startTimeParts = start.split(':');
       const startMinutes =
-        parseInt(start.split(':')[0]) * 60 + parseInt(start.split(':')[1]);
+        parseInt(startTimeParts[0]) * 60 + parseInt(startTimeParts[1]);
+      const endTimeParts = end.split(':');
       const endMinutes =
-        parseInt(end.split(':')[0]) * 60 + parseInt(end.split(':')[1]);
+        parseInt(endTimeParts[0]) * 60 + parseInt(endTimeParts[1]);
       return endMinutes > startMinutes;
     },
     {

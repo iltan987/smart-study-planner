@@ -45,7 +45,6 @@ export async function getTodos(
 
     const { utcStart, utcEnd } = getUtcDateRangeForLocalDay(date, timezone);
 
-    // Construct Date for localDate (local time, Prisma will store as UTC)
     const localDate = new Date(date.year, date.month - 1, date.date);
 
     const todos = await prisma.todo.findMany({
