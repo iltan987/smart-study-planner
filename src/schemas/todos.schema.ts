@@ -8,7 +8,7 @@ export const addTodoFormSchema = z.object({
   }),
   description: z.string(),
   timeOfDay: z.string(),
-  duration: z.coerce.number().positive().or(z.literal('')),
+  duration: z.number().positive(),
   priority: z.nativeEnum(TodoPriority),
   category: z.nativeEnum(TodoCategory),
   status: z.nativeEnum(TodoStatus),
