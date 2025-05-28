@@ -61,8 +61,6 @@ model User {
   email    String @unique
   password String
 
-  notificationsEnabled Boolean @default(false)
-
   profile             UserProfile?
   todos               Todo[]
   calendarEvents      CalendarEvent[]
@@ -77,9 +75,9 @@ model UserProfile {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  birthday DateTime?
-  gender   Gender?
-  language Language?
+  birthDate DateTime? @db.Date
+  gender    Gender?
+  language  Language?
 
   school              String?
   degree              String?
@@ -89,6 +87,8 @@ model UserProfile {
   finishDate          DateTime?
   estimatedFinishDate DateTime?
   gpa                 Float?
+
+  notificationsEnabled Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
