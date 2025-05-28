@@ -100,21 +100,21 @@ model Todo {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   isAllDay Boolean   @default(false)
-  date     DateTime? @db.Date
+  date     DateTime? @db.Date // For all-day todos
 
   title       String
   description String?
-  dueTime     DateTime?
+  dueTime     DateTime? // For timed todos
   priority    TodoPriority @default(MEDIUM)
   category    TodoCategory @default(STUDY)
-  duration    Int?
+  duration    Int? // in minutes
   status      TodoStatus   @default(PENDING)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId, dueTime])
-  @@index([userId, date, isAllDay])
+  @@index([userId, date, isAllDay]) // Covers all-day todos: WHERE userId = ? AND isAllDay = true AND date = ?
   @@index([userId, status])
   @@index([userId, priority, dueTime])
   @@index([userId, priority, date, isAllDay])
@@ -126,8 +126,8 @@ model CalendarEvent {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   title     String
-  startTime DateTime
-  endTime   DateTime
+  startTime DateTime // Stored in UTC
+  endTime   DateTime // Stored in UTC
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -141,10 +141,10 @@ model AiInteractionEvent {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  timestamp DateTime                 @default(now())
+  timestamp DateTime                 @default(now()) // Logical time of the interaction
   type      AiInteractionContentType
 
-  // Foreign keys to specific content types
+  // Foreign keys to specific content types (one-to-one)
   userInputMessageId     String? @unique
   modelResponseMessageId String? @unique
   functionCallRequestId  String? @unique
@@ -156,12 +156,11 @@ model AiInteractionEvent {
   functionCallRequest  AiFunctionCallRequest? @relation("FunctionCallRequestToEvent", fields: [functionCallRequestId], references: [id], onDelete: Cascade)
   functionCallResult   AiFunctionCallResult?  @relation("FunctionCallResultToEvent", fields: [functionCallResultId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) // Record creation time
   updatedAt DateTime @updatedAt
 
-  @@index([userId, timestamp])
-  @@index([userId, timestamp], name: "idx_user_thread_time")
-  @@index([type])
+  @@index([userId, timestamp]) // For querying user's interaction history chronologically
+  @@index([type]) // For filtering by interaction type
 }
 
 // --- Specific Content Models for AI Interactions ---
@@ -183,16 +182,16 @@ model ModelResponseMessage {
 
 model AiFunctionCallRequest {
   id   String @id @default(cuid())
-  name String
-  args Json
+  name String // Name of the function called
+  args Json // Arguments passed to the function
 
   event AiInteractionEvent? @relation("FunctionCallRequestToEvent")
 }
 
 model AiFunctionCallResult {
   id       String @id @default(cuid())
-  name     String
-  response Json
+  name     String // Name of the function whose result this is
+  response Json // Result returned by the function
 
   event AiInteractionEvent? @relation("FunctionCallResultToEvent")
 }
