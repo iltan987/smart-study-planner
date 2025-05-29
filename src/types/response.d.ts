@@ -3,7 +3,7 @@ import type { ValidationError, ZodSchemaOutput } from './zod';
 /**
  * Generic success result type.
  */
-export type SuccessResult<TData = undefined> = {
+type SuccessResult<TData = undefined> = {
   success: true;
   message?: string;
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -12,7 +12,7 @@ export type SuccessResult<TData = undefined> = {
 /**
  * Generic error result type (includes validation errors).
  */
-export type ErrorResult<TSchema extends ZodSchemaOutput = undefined> = {
+type ErrorResult<TSchema extends ZodSchemaOutput = undefined> = {
   success: false;
   error: TSchema extends undefined ? string : string | ValidationError<TSchema>;
 };
