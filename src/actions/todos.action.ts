@@ -15,7 +15,6 @@ import {
   updateTodoStatusOnlySchema,
 } from '@/schemas/todos.schema';
 import type { Result } from '@/types/response';
-import { getUtcDateRangeForLocalDay, localToUtc } from '@/utils/date.util';
 import type { Todo } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
@@ -41,25 +40,19 @@ export async function getTodos(
       };
     }
 
-    const { date, timezone } = validationResult.data;
-
-    const { utcStart, utcEnd } = getUtcDateRangeForLocalDay(date, timezone);
-
-    const localDate = new Date(date.year, date.month - 1, date.date);
+    const { utc, start, end } = validationResult.data;
 
     const todos = await prisma.todo.findMany({
       where: {
         userId,
         OR: [
           {
-            isAllDay: true,
-            date: localDate,
+            date: utc,
           },
           {
-            isAllDay: false,
             dueTime: {
-              gte: utcStart,
-              lte: utcEnd,
+              gte: start,
+              lte: end,
             },
           },
         ],
@@ -101,26 +94,10 @@ export async function createTodo(
       };
     }
 
-    const { date, clientTimezone, timeOfDay, ...todoData } =
-      validationResult.data;
-    const isAllDay = !timeOfDay;
-
-    let dueTime: Date | null = null;
-    let localDate: Date | null = null;
-
-    if (isAllDay) {
-      localDate = new Date(date.year, date.month - 1, date.date);
-    } else {
-      dueTime = localToUtc(date, clientTimezone, timeOfDay);
-    }
-
     const newTodo = await prisma.todo.create({
       data: {
         userId,
-        isAllDay,
-        date: localDate,
-        dueTime,
-        ...todoData,
+        ...validationResult.data,
       },
     });
 

@@ -8,9 +8,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { formatUtcToLocalTime } from '@/utils/client-date.util';
 import type { Todo } from '@prisma/client';
 import { TodoCategory, TodoPriority, TodoStatus } from '@prisma/client';
+import { format } from 'date-fns';
 import {
   AlertTriangle,
   CalendarIcon,
@@ -27,7 +27,6 @@ import {
 
 interface TodoItemProps {
   todo: Todo;
-  userTimezone: string;
   onStatusChange: (id: string, status: TodoStatus) => void;
   onDelete: (id: string) => void;
   isAdding?: boolean;
@@ -66,15 +65,12 @@ const getStatusIcon = (status?: TodoStatus | null) => {
 
 export function TodoItem({
   todo,
-  userTimezone,
   onStatusChange,
   onDelete,
   isAdding,
   isUpdatingStatus,
   isDeleting,
 }: TodoItemProps) {
-  const localTime = formatUtcToLocalTime(todo.dueTime, userTimezone);
-
   const handleCheckboxChange = (checked: boolean | 'indeterminate') => {
     if (typeof checked === 'boolean') {
       onStatusChange(
@@ -194,9 +190,10 @@ export function TodoItem({
           )}
 
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-2">
-            {localTime && !isAdding && (
+            {todo.dueTime && !isAdding && (
               <span className="flex items-center">
-                <Clock className="h-3 w-3 mr-1" /> {localTime}
+                <Clock className="h-3 w-3 mr-1" />
+                {format(todo.dueTime, 'p')}
               </span>
             )}
             {todo.duration && !isAdding && (

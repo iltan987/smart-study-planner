@@ -28,16 +28,20 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ValidationException } from '@/errors/ValidationException';
 import { cn } from '@/lib/utils';
-import type { YearMonthDate } from '@/schemas/time.schema';
 import type {
   CreateTodoInputSchema,
   GetTodosInputSchema,
 } from '@/schemas/todos.schema';
-import type { OmitTyped } from '@/types/omit';
-import { formatToReadableDate } from '@/utils/client-date.util';
 import type { Todo } from '@prisma/client';
 import { TodoCategory, TodoPriority, TodoStatus } from '@prisma/client';
-import { addDays, isSameDay, startOfDay, subDays } from 'date-fns';
+import {
+  addDays,
+  endOfDay,
+  format,
+  isSameDay,
+  startOfDay,
+  subDays,
+} from 'date-fns';
 import {
   CalendarIcon as CalendarIconLucide,
   CheckCircle2,
@@ -66,10 +70,6 @@ type ClientTodo = Todo & {
 
 export default function TodosPage() {
   const { data: session, status } = useSession({ required: true });
-  const userTimezone = useMemo(
-    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
-    []
-  );
 
   const [selectedDate, setSelectedDate] = useState<Date>();
   useEffect(() => {
@@ -98,26 +98,22 @@ export default function TodosPage() {
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  const convertedSelectedDateForServer = useMemo(() => {
-    return (
-      selectedDate &&
-      ({
-        year: selectedDate.getFullYear(),
-        month: selectedDate.getMonth() + 1,
-        date: selectedDate.getDate(),
-      } as YearMonthDate)
-    );
-  }, [selectedDate]);
-
   const fetchTodos = useCallback(async () => {
-    if (!convertedSelectedDateForServer) return;
+    if (!selectedDate) return;
 
     setIsTodosLoading(true);
 
     try {
       const res = await getTodos({
-        date: convertedSelectedDateForServer,
-        timezone: userTimezone,
+        utc: new Date(
+          Date.UTC(
+            selectedDate.getFullYear(),
+            selectedDate.getMonth(),
+            selectedDate.getDate()
+          )
+        ),
+        start: startOfDay(selectedDate),
+        end: endOfDay(selectedDate),
       });
 
       if (!res.success) {
@@ -141,7 +137,7 @@ export default function TodosPage() {
     }
 
     setIsTodosLoading(false);
-  }, [userTimezone, convertedSelectedDateForServer]);
+  }, [selectedDate]);
 
   useEffect(() => {
     if (status === 'authenticated') fetchTodos();
@@ -177,17 +173,20 @@ export default function TodosPage() {
 
   const handleQuickAddTodo = async (e: FormEvent) => {
     e.preventDefault();
-    if (
-      !quickTodoTitle.trim() ||
-      isSubmittingQuickTodo ||
-      !selectedDate ||
-      !convertedSelectedDateForServer
-    )
+    if (!quickTodoTitle.trim() || isSubmittingQuickTodo || !selectedDate)
       return;
 
     setIsSubmittingQuickTodo(true);
     const newTempId = `optimistic-add-${Date.now()}`;
     const currentQuickTodoTitle = quickTodoTitle.trim();
+
+    const allDayDate = new Date(
+      Date.UTC(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate()
+      )
+    );
 
     const optimisticTodo: ClientTodo = {
       tempId: newTempId,
@@ -200,8 +199,7 @@ export default function TodosPage() {
       duration: null,
       status: TodoStatus.PENDING,
       userId: session.user.id,
-      isAllDay: true,
-      date: startOfDay(selectedDate),
+      date: allDayDate,
       createdAt: new Date(),
       updatedAt: new Date(),
       _isAdding: true,
@@ -211,12 +209,10 @@ export default function TodosPage() {
     setQuickTodoTitle('');
 
     try {
-      const payload: CreateTodoInputSchema = {
+      const res = await createTodo({
         title: currentQuickTodoTitle,
-        date: convertedSelectedDateForServer,
-        clientTimezone: userTimezone,
-      };
-      const res = await createTodo(payload);
+        date: allDayDate,
+      } as CreateTodoInputSchema);
 
       if (!res.success) {
         if (typeof res.error === 'string') {
@@ -253,34 +249,19 @@ export default function TodosPage() {
     }
   };
 
-  const handleDetailedAddTodo = async (
-    formData: OmitTyped<CreateTodoInputSchema, 'clientTimezone' | 'date'>
-  ) => {
-    if (
-      isSubmittingDetailedTodo ||
-      !selectedDate ||
-      !convertedSelectedDateForServer
-    )
-      return;
+  const handleDetailedAddTodo = async (formData: CreateTodoInputSchema) => {
+    if (isSubmittingDetailedTodo || !selectedDate) return;
     setIsSubmittingDetailedTodo(true);
 
     const newTempId = `optimistic-add-${Date.now()}`;
-    const optimisticDueTime =
-      formData.timeOfDay &&
-      new Date(
-        selectedDate.getFullYear(),
-        selectedDate.getMonth(),
-        selectedDate.getDate(),
-        formData.timeOfDay.hours,
-        formData.timeOfDay.minutes
-      );
 
     const optimisticTodo: ClientTodo = {
       tempId: newTempId,
       id: newTempId,
       title: formData.title,
       description: formData.description || null,
-      dueTime: optimisticDueTime || null,
+      dueTime: formData.dueTime || null,
+      date: formData.date || null,
       priority: formData.priority || TodoPriority.MEDIUM,
       category: formData.category || TodoCategory.STUDY,
       duration: formData.duration || null,
@@ -288,8 +269,6 @@ export default function TodosPage() {
       userId: session.user.id,
       createdAt: new Date(),
       updatedAt: new Date(),
-      isAllDay: !!optimisticDueTime,
-      date: startOfDay(selectedDate),
       _isAdding: true,
     };
 
@@ -301,9 +280,12 @@ export default function TodosPage() {
         ...Object.fromEntries(
           Object.entries(formData).filter(([_, v]) => v !== undefined)
         ),
-        date: convertedSelectedDateForServer,
-        clientTimezone: userTimezone,
       };
+      if (formData.date) {
+        payload.date = formData.date;
+      } else if (formData.dueTime) {
+        payload.dueTime = formData.dueTime;
+      }
       const res = await createTodo(payload);
 
       if (!res.success) {
@@ -469,7 +451,7 @@ export default function TodosPage() {
                   title="Select Date"
                 >
                   <CalendarIconLucide className="mr-2 h-4 w-4" />
-                  {selectedDate && formatToReadableDate(selectedDate)}
+                  {selectedDate && format(selectedDate, 'PP')}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -538,7 +520,7 @@ export default function TodosPage() {
                 <CardTitle className="text-xl flex items-center gap-2">
                   <ListChecks className="h-6 w-6 text-primary" /> Tasks for{' '}
                   {selectedDate ? (
-                    formatToReadableDate(selectedDate)
+                    format(selectedDate, 'PP')
                   ) : (
                     <Skeleton className="h-5 w-32" />
                   )}
@@ -776,8 +758,8 @@ export default function TodosPage() {
                 {filteredTodos
                   .sort((a, b) => {
                     // Sort by isAllDay (e.g., all-day tasks first or last)
-                    if (a.isAllDay && !b.isAllDay) return -1; // a (all-day) comes first
-                    if (!a.isAllDay && b.isAllDay) return 1; // b (all-day) comes first
+                    if (a.date && !b.date) return -1; // a (all-day) comes first
+                    if (!a.date && b.date) return 1; // b (all-day) comes first
 
                     const priorityOrder: Record<TodoPriority, number> = {
                       [TodoPriority.HIGH]: 1,
@@ -789,7 +771,7 @@ export default function TodosPage() {
                     if (priorityA !== priorityB) return priorityA - priorityB;
 
                     // Then by Due Time (only for timed events, all-day events might be considered to have same "time rank" here)
-                    if (!a.isAllDay && a.dueTime && !b.isAllDay && b.dueTime) {
+                    if (!a.date && a.dueTime && !b.date && b.dueTime) {
                       return a.dueTime.getTime() - b.dueTime.getTime();
                     }
 
@@ -803,7 +785,6 @@ export default function TodosPage() {
                     <TodoItem
                       key={todo.id}
                       todo={todo}
-                      userTimezone={userTimezone}
                       onStatusChange={handleStatusChange}
                       onDelete={handleDeleteTodo}
                       isAdding={todo._isAdding}

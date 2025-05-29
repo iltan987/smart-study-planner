@@ -30,19 +30,16 @@ import {
   addTodoFormSchema,
   type CreateTodoInputSchema,
 } from '@/schemas/todos.schema';
-import type { OmitTyped } from '@/types/omit';
-import { formatToReadableDate } from '@/utils/client-date.util';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { TodoCategory, TodoPriority, TodoStatus } from '@prisma/client';
+import { format } from 'date-fns';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 
 interface AddTodoDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSubmit: (
-    todoData: OmitTyped<CreateTodoInputSchema, 'clientTimezone' | 'date'>
-  ) => Promise<void>;
+  onSubmit: (todoData: CreateTodoInputSchema) => Promise<void>;
   selectedDate: Date;
   isSubmitting?: boolean;
 }
@@ -77,10 +74,20 @@ export function AddTodoDialog({
   }, [form, isOpen]);
 
   const handleSubmit = (formData: AddTodoFormSchema) => {
-    let timeOfDay: { hours: number; minutes: number } | undefined = undefined;
+    let dueTime: Date | undefined;
+    let date: Date | undefined;
     if (formData.timeOfDay !== '') {
       const [hours, minutes] = formData.timeOfDay.split(':').map(Number);
-      timeOfDay = { hours, minutes };
+      dueTime = new Date(selectedDate);
+      dueTime.setHours(hours, minutes, 0, 0);
+    } else {
+      date = new Date(
+        Date.UTC(
+          selectedDate.getFullYear(),
+          selectedDate.getMonth(),
+          selectedDate.getDate()
+        )
+      );
     }
 
     onSubmit({
@@ -88,7 +95,8 @@ export function AddTodoDialog({
       description:
         formData.description === '' ? undefined : formData.description,
       duration: formData.duration ? Number(formData.duration) : undefined,
-      timeOfDay,
+      dueTime,
+      date,
     });
   };
 
@@ -99,7 +107,7 @@ export function AddTodoDialog({
           <DialogTitle>Add New Task</DialogTitle>
           <DialogDescription>
             Fill in the details for your new task for{' '}
-            {formatToReadableDate(selectedDate)}.
+            {format(selectedDate, 'PP')}.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

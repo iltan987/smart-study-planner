@@ -1,6 +1,5 @@
 import { TodoCategory, TodoPriority, TodoStatus } from '@prisma/client';
 import { z } from 'zod';
-import { hoursMinutesSchema, yearMonthDateSchema } from './time.schema';
 
 export const addTodoFormSchema = z.object({
   title: z
@@ -21,30 +20,36 @@ export const addTodoFormSchema = z.object({
 });
 export type AddTodoFormSchema = z.infer<typeof addTodoFormSchema>;
 
-export const createTodoInputSchema = z.object({
-  title: z
-    .string()
-    .nonempty({ message: 'Title is required.' })
-    .max(255, { message: 'Title must be 255 characters or less.' })
-    .refine((val) => val.trim().length > 0, {
-      message: 'Title is required.',
-    }),
-  description: z
-    .string()
-    .max(1000, { message: 'Description must be 1000 characters or less.' })
-    .transform((val) => (val === '' ? undefined : val))
-    .optional(),
-  date: yearMonthDateSchema,
-  timeOfDay: hoursMinutesSchema.optional(),
-  duration: z
-    .number()
-    .positive({ message: 'Duration must be a positive number.' })
-    .optional(),
-  priority: z.nativeEnum(TodoPriority).default(TodoPriority.MEDIUM).optional(),
-  category: z.nativeEnum(TodoCategory).default(TodoCategory.STUDY).optional(),
-  status: z.nativeEnum(TodoStatus).default(TodoStatus.PENDING).optional(),
-  clientTimezone: z.string({ required_error: 'Client timezone is required.' }),
-});
+export const createTodoInputSchema = z
+  .object({
+    title: z
+      .string()
+      .nonempty({ message: 'Title is required.' })
+      .max(255, { message: 'Title must be 255 characters or less.' })
+      .refine((val) => val.trim().length > 0, {
+        message: 'Title is required.',
+      }),
+    description: z
+      .string()
+      .max(1000, { message: 'Description must be 1000 characters or less.' })
+      .transform((val) => (val === '' ? undefined : val))
+      .optional(),
+    date: z.date().optional(),
+    dueTime: z.date().optional(),
+    duration: z
+      .number()
+      .positive({ message: 'Duration must be a positive number.' })
+      .optional(),
+    priority: z
+      .nativeEnum(TodoPriority)
+      .default(TodoPriority.MEDIUM)
+      .optional(),
+    category: z.nativeEnum(TodoCategory).default(TodoCategory.STUDY).optional(),
+    status: z.nativeEnum(TodoStatus).default(TodoStatus.PENDING).optional(),
+  })
+  .refine((data) => data.date || data.dueTime, {
+    message: 'Either date or dueTime must be provided.',
+  });
 export type CreateTodoInputSchema = z.infer<typeof createTodoInputSchema>;
 
 export const deleteTodoInputSchema = z.object({
@@ -66,8 +71,20 @@ export type UpdateTodoStatusOnlyInput = z.infer<
   typeof updateTodoStatusOnlySchema
 >;
 
-export const getTodosInputSchema = z.object({
-  date: yearMonthDateSchema,
-  timezone: z.string({ required_error: 'Client timezone is required.' }),
-});
+export const getTodosInputSchema = z
+  .object({
+    utc: z.date(),
+    start: z.date(),
+    end: z.date(),
+  })
+  .refine(
+    (data) => {
+      const start = data.start.getTime();
+      const end = data.end.getTime();
+      return end - start <= 24 * 60 * 60 * 1000;
+    },
+    {
+      message: 'Time range must be less than 24 hours.',
+    }
+  );
 export type GetTodosInputSchema = z.infer<typeof getTodosInputSchema>;
