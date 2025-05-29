@@ -1,12 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatUtcToLocalTime, isDateToday } from '@/utils/client-date.util';
 import type { CalendarEvent } from '@prisma/client';
-import {
-  format as dateFnsFormat,
-  eachDayOfInterval,
-  isSameDay,
-} from 'date-fns';
+import { eachDayOfInterval, format, isSameDay, isToday } from 'date-fns';
 import { Edit3, PlusCircle, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -22,7 +17,6 @@ interface WeeklyCalendarViewProps {
   weekEndDate?: Date;
   isLoadingEvents: boolean;
   events: ClientCalendarEvent[];
-  userTimezone: string;
   onEventEdit: (event: ClientCalendarEvent) => void;
   onEventDeleteInitiate: (eventId: string) => void;
   onCellClick: (date: Date) => void;
@@ -33,7 +27,6 @@ export function WeeklyCalendarView({
   weekEndDate,
   isLoadingEvents,
   events,
-  userTimezone,
   onEventEdit,
   onEventDeleteInitiate,
   onCellClick,
@@ -91,20 +84,20 @@ export function WeeklyCalendarView({
             <div
               key={i}
               className={`relative p-2 border-b border-r border-border min-h-[120px]
-                ${isDateToday(day) ? 'bg-accent/30' : ''}`}
+                ${isToday(day) ? 'bg-accent/30' : ''}`}
             >
               <div className="flex justify-between items-center mb-1">
                 <span className="font-semibold text-xs sm:text-sm">
-                  {dateFnsFormat(day, 'EEE')}
+                  {format(day, 'eee')}
                 </span>
                 <span
                   className={`text-xl sm:text-2xl font-light ${
-                    isDateToday(day)
+                    isToday(day)
                       ? 'text-primary font-medium'
                       : 'text-muted-foreground'
                   }`}
                 >
-                  {dateFnsFormat(day, 'd')}
+                  {format(day, 'd')}
                 </span>
               </div>
               <Button
@@ -125,12 +118,10 @@ export function WeeklyCalendarView({
                   : events
                       .filter(
                         (event) =>
-                          isSameDay(event.startTime, day) ||
-                          (event.startTime < day && event.endTime > day)
+                          isSameDay(event.start, day) ||
+                          (event.start < day && event.end > day)
                       )
-                      .sort(
-                        (a, b) => a.startTime.getTime() - b.startTime.getTime()
-                      )
+                      .sort((a, b) => a.start.getTime() - b.start.getTime())
                       .map((event) => (
                         <div
                           key={event.id}
@@ -159,12 +150,8 @@ export function WeeklyCalendarView({
                             {event.title}
                           </p>
                           <p>
-                            {formatUtcToLocalTime(
-                              event.startTime,
-                              userTimezone
-                            )}{' '}
-                            -{' '}
-                            {formatUtcToLocalTime(event.endTime, userTimezone)}
+                            {format(event.start, 'p')} -{' '}
+                            {format(event.end, 'p')}
                           </p>
                           {(event._isAdding ||
                             event._isUpdating ||

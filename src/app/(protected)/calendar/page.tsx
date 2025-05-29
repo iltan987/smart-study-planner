@@ -32,17 +32,9 @@ import { ValidationException } from '@/errors/ValidationException';
 import type {
   CreateCalendarEventInputSchema,
   GetCalendarEventsInputSchema,
-  UpdateCalendarEventInputSchema,
 } from '@/schemas/calendar.schema';
-import type { YearMonthDate } from '@/schemas/time.schema';
-import type { OmitTyped } from '@/types/omit';
-import {
-  formatToReadableDate,
-  getStartOfWeekMonday,
-  isDateToday,
-} from '@/utils/client-date.util';
 import type { CalendarEvent } from '@prisma/client';
-import { addDays, addWeeks, subWeeks } from 'date-fns';
+import { addWeeks, endOfWeek, format, startOfWeek, subWeeks } from 'date-fns';
 import {
   CalendarIcon as CalendarIconLucide,
   ChevronLeft,
@@ -63,27 +55,15 @@ type ClientCalendarEvent = CalendarEvent & {
 export default function CalendarPage() {
   const { data: session, status } = useSession({ required: true });
 
-  const userTimezone = useMemo(
-    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
-    []
-  );
-
-  const [today, setToday] = useState<Date>();
+  const [weekStartDate, setWeekStartDate] = useState<Date | undefined>();
   useEffect(() => {
-    setToday(new Date());
+    setWeekStartDate(startOfWeek(new Date(), { weekStartsOn: 1 }));
   }, []);
 
-  const [weekStartDate, setWeekStartDate] = useState<Date>();
+  const [weekEndDate, setWeekEndDate] = useState<Date | undefined>();
   useEffect(() => {
-    if (!today) return;
-    setWeekStartDate(getStartOfWeekMonday(today));
-  }, [today]);
-
-  const [weekEndDate, setWeekEndDate] = useState<Date>();
-  useEffect(() => {
-    if (!weekStartDate) return;
-    setWeekEndDate(addDays(weekStartDate, 6));
-  }, [weekStartDate]);
+    setWeekEndDate(endOfWeek(new Date(), { weekStartsOn: 1 }));
+  }, []);
 
   const [events, setEvents] = useState<ClientCalendarEvent[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
@@ -103,72 +83,73 @@ export default function CalendarPage() {
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const convertedWeekStartDateForAPI = useMemo(() => {
-    return (
-      weekStartDate && {
-        year: weekStartDate.getFullYear(),
-        month: weekStartDate.getMonth() + 1,
-        date: weekStartDate.getDate(),
-      }
-    );
-  }, [weekStartDate]);
-
-  const weekTitle = useMemo(() => {
+  const [weekTitle, setWeekTitle] = useState<string | undefined>();
+  useEffect(() => {
     if (!weekStartDate || !weekEndDate) return;
-    return `${formatToReadableDate(
-      weekStartDate
-    )} - ${formatToReadableDate(weekEndDate)}`;
+    setWeekTitle(
+      `${format(weekStartDate, 'PP')} - ${format(weekEndDate, 'PP')}`
+    );
   }, [weekStartDate, weekEndDate]);
 
-  const fetchAndSetEvents = useCallback(
-    async (weekStart: YearMonthDate) => {
-      setIsLoadingEvents(true);
-      try {
-        const res = await getCalendarEvents({
-          date: weekStart,
-          timezone: userTimezone,
-        });
+  const fetchCalendarEvents = useCallback(async () => {
+    if (!weekStartDate || !weekEndDate) return;
 
-        if (!res.success) {
-          if (typeof res.error === 'string') {
-            throw new Error(res.error);
-          }
+    setIsLoadingEvents(true);
+    try {
+      const res = await getCalendarEvents({
+        start: weekStartDate,
+        end: weekEndDate,
+      });
 
-          throw new ValidationException<GetCalendarEventsInputSchema>(
-            'Failed to fetch calendar events',
-            res.error
-          );
+      if (!res.success) {
+        if (typeof res.error === 'string') {
+          throw new Error(res.error);
         }
 
-        setEvents(res.data);
-      } catch (err) {
-        console.error('Failed to fetch calendar events:', err);
-        setEvents([]);
-        if (err instanceof Error) {
-          toast.error('Could not load events: ' + err.message);
-        }
-      } finally {
-        setIsLoadingEvents(false);
+        throw new ValidationException<GetCalendarEventsInputSchema>(
+          'Failed to fetch calendar events',
+          res.error
+        );
       }
-    },
-    [userTimezone]
-  );
+
+      setEvents(res.data);
+    } catch (err) {
+      console.error('Failed to fetch calendar events:', err);
+      setEvents([]);
+      if (err instanceof Error) {
+        toast.error('Could not load events: ' + err.message);
+      }
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  }, [weekEndDate, weekStartDate]);
 
   useEffect(() => {
-    if (status === 'authenticated' && convertedWeekStartDateForAPI) {
-      fetchAndSetEvents(convertedWeekStartDateForAPI);
+    if (status === 'authenticated') {
+      fetchCalendarEvents();
     }
-  }, [status, convertedWeekStartDateForAPI, fetchAndSetEvents]);
+  }, [fetchCalendarEvents, status]);
 
-  const handlePreviousWeek = () =>
-    setWeekStartDate((prev) => prev && getStartOfWeekMonday(subWeeks(prev, 1)));
-  const handleNextWeek = () =>
-    setWeekStartDate((prev) => prev && getStartOfWeekMonday(addWeeks(prev, 1)));
-  const handleToday = () => setWeekStartDate(getStartOfWeekMonday(new Date()));
+  const handlePreviousWeek = () => {
+    setWeekStartDate(
+      (prev) => prev && startOfWeek(subWeeks(prev, 1), { weekStartsOn: 1 })
+    );
+    setWeekEndDate(
+      (prev) => prev && endOfWeek(subWeeks(prev, 1), { weekStartsOn: 1 })
+    );
+  };
+  const handleNextWeek = () => {
+    setWeekStartDate(
+      (prev) => prev && startOfWeek(addWeeks(prev, 1), { weekStartsOn: 1 })
+    );
+    setWeekEndDate(
+      (prev) => prev && endOfWeek(addWeeks(prev, 1), { weekStartsOn: 1 })
+    );
+  };
+  const handleToday = () =>
+    setWeekStartDate(startOfWeek(new Date(), { weekStartsOn: 1 }));
 
-  const handleAddEventSubmit = async (
-    data: OmitTyped<CreateCalendarEventInputSchema, 'clientTimezone'>
-  ) => {
+  const handleAddEventSubmit = async (data: CreateCalendarEventInputSchema) => {
     if (!session?.user.id) {
       toast.error('Authentication error.');
       return;
@@ -186,20 +167,8 @@ export default function CalendarPage() {
       tempId: tempId,
       userId: session.user.id,
       title: data.title,
-      startTime: new Date(
-        data.eventDate.year,
-        data.eventDate.month - 1,
-        data.eventDate.date,
-        data.startTimeLocal.hours,
-        data.startTimeLocal.minutes
-      ),
-      endTime: new Date(
-        data.eventDate.year,
-        data.eventDate.month - 1,
-        data.eventDate.date,
-        data.endTimeLocal.hours,
-        data.endTimeLocal.minutes
-      ),
+      start: data.start,
+      end: data.end,
       createdAt: new Date(),
       updatedAt: new Date(),
       _isAdding: true,
@@ -208,10 +177,7 @@ export default function CalendarPage() {
     setEvents((prev) => [...prev, optimisticEvent]);
 
     try {
-      const result = await createCalendarEvent({
-        ...data,
-        clientTimezone: userTimezone,
-      });
+      const result = await createCalendarEvent(data);
 
       if (result.success) {
         toast.success(`Event "${result.data.title}" created successfully.`);
@@ -250,7 +216,7 @@ export default function CalendarPage() {
   };
 
   const handleUpdateEventSubmit = async (
-    formData: OmitTyped<CreateCalendarEventInputSchema, 'clientTimezone'>
+    formData: CreateCalendarEventInputSchema
   ) => {
     if (!session?.user.id) {
       toast.error('Authentication error.');
@@ -278,20 +244,8 @@ export default function CalendarPage() {
           ? {
               ...e,
               title: formData.title,
-              startTime: new Date(
-                formData.eventDate.year,
-                formData.eventDate.month - 1,
-                formData.eventDate.date,
-                formData.startTimeLocal.hours,
-                formData.startTimeLocal.minutes
-              ),
-              endTime: new Date(
-                formData.eventDate.year,
-                formData.eventDate.month - 1,
-                formData.eventDate.date,
-                formData.endTimeLocal.hours,
-                formData.endTimeLocal.minutes
-              ),
+              start: formData.start,
+              end: formData.end,
               _isUpdating: true,
             }
           : e
@@ -299,16 +253,12 @@ export default function CalendarPage() {
     );
 
     try {
-      const updatePayload: UpdateCalendarEventInputSchema = {
+      const result = await updateCalendarEvent({
         eventId: editingEvent.id,
         title: formData.title,
-        eventDate: formData.eventDate,
-        startTimeLocal: formData.startTimeLocal,
-        endTimeLocal: formData.endTimeLocal,
-        clientTimezone: userTimezone,
-      };
-
-      const result = await updateCalendarEvent(updatePayload);
+        start: formData.start,
+        end: formData.end,
+      });
 
       if (result.success) {
         toast.success(`Event "${result.data.title}" updated successfully.`);
@@ -459,14 +409,7 @@ export default function CalendarPage() {
               <Button
                 variant="outline"
                 onClick={handleToday}
-                disabled={
-                  !today ||
-                  !weekStartDate ||
-                  (isDateToday(today) &&
-                    getStartOfWeekMonday(today).getTime() ===
-                      weekStartDate.getTime()) ||
-                  isLoadingEvents
-                }
+                disabled={!weekStartDate || !weekEndDate || isLoadingEvents}
               >
                 Today
               </Button>
@@ -480,10 +423,14 @@ export default function CalendarPage() {
                 <ChevronRight className="h-4 w-4" />
               </Button>
               <Button
-                onClick={() => today && handleCalendarCellClick(today)}
+                onClick={() =>
+                  weekStartDate &&
+                  weekEndDate &&
+                  handleCalendarCellClick(new Date())
+                }
                 size="sm"
                 className="ml-2"
-                disabled={!today || isLoadingEvents}
+                disabled={!weekStartDate || !weekEndDate || isLoadingEvents}
               >
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Event
               </Button>
@@ -498,7 +445,6 @@ export default function CalendarPage() {
               weekStartDate={weekStartDate}
               weekEndDate={weekEndDate}
               events={events}
-              userTimezone={userTimezone}
               onCellClick={handleCalendarCellClick}
               onEventEdit={handleEventItemEdit}
               onEventDeleteInitiate={handleDeleteInitiate}
@@ -545,10 +491,7 @@ export default function CalendarPage() {
         onOpenChange={() => setIsEventFormOpen(false)}
         onSubmit={editingEvent ? handleUpdateEventSubmit : handleAddEventSubmit}
         eventToEdit={editingEvent}
-        initialDate={
-          editingEvent ? undefined : selectedCellDate || weekStartDate
-        }
-        userTimezone={userTimezone}
+        initialDate={selectedCellDate || editingEvent?.start || new Date()}
         isSubmittingForm={isSubmittingEventForm}
         isDeletingEvent={!!editingEvent && deletingEventId === editingEvent.id}
         onDelete={editingEvent ? handleDeleteConfirm : undefined}

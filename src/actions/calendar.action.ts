@@ -15,11 +15,8 @@ import {
   updateCalendarEventInputSchema,
 } from '@/schemas/calendar.schema';
 import type { Result } from '@/types/response';
-import { getUtcDateRangeForLocalDay, localToUtc } from '@/utils/date.util';
-import type { CalendarEvent, Prisma } from '@prisma/client';
+import type { CalendarEvent } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-import { addDays } from 'date-fns';
-import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 
 export async function getCalendarEvents(
   input: GetCalendarEventsInputSchema
@@ -43,37 +40,22 @@ export async function getCalendarEvents(
       };
     }
 
-    const { date: weekStartDate, timezone } = validationResult.data;
-
-    const { utcStart: weekUtcStartDate } = getUtcDateRangeForLocalDay(
-      weekStartDate,
-      timezone
-    );
-
-    const localWeekStartDate = new Date(
-      weekStartDate.year,
-      weekStartDate.month - 1,
-      weekStartDate.date
-    );
-    const localWeekEndDate = addDays(localWeekStartDate, 6);
-
-    const { utcEnd: weekUtcEndDate } = getUtcDateRangeForLocalDay(
-      {
-        year: localWeekEndDate.getFullYear(),
-        month: localWeekEndDate.getMonth() + 1,
-        date: localWeekEndDate.getDate(),
-      },
-      timezone
-    );
+    const { start, end } = validationResult.data;
 
     const events = await prisma.calendarEvent.findMany({
       where: {
         userId,
-        startTime: { lt: weekUtcEndDate },
-        endTime: { gt: weekUtcStartDate },
+        start: {
+          gte: start,
+          lte: end,
+        },
+        end: {
+          gte: start,
+          lte: end,
+        },
       },
       orderBy: {
-        startTime: 'asc',
+        start: 'asc',
       },
     });
 
@@ -118,32 +100,10 @@ export async function createCalendarEvent(
       };
     }
 
-    const { title, eventDate, startTimeLocal, endTimeLocal, clientTimezone } =
-      validationResult.data;
-
-    // Convert local start and end datetimes to UTC
-    // Both startTime and endTime are on the SAME local eventDate
-    const utcStartTime = localToUtc(eventDate, clientTimezone, startTimeLocal);
-    const utcEndTime = localToUtc(eventDate, clientTimezone, endTimeLocal); // Using same eventDate
-
-    // Zod refine already ensures endTimeLocal > startTimeLocal.
-    // An additional server-side check here.
-    if (utcEndTime <= utcStartTime) {
-      // This could happen due to DST transitions or issues with localToUtc if not robust,
-      // or if refine logic was bypassed/incorrect.
-      return {
-        success: false,
-        error:
-          'Calculated UTC end time must be after UTC start time. Ensure times are valid for the given date and timezone.',
-      };
-    }
-
     const newEvent = await prisma.calendarEvent.create({
       data: {
         userId,
-        title,
-        startTime: utcStartTime,
-        endTime: utcEndTime,
+        ...validationResult.data,
       },
     });
 
@@ -176,16 +136,12 @@ async function getCalendarEventAndCheckOwnership(
     }
   | {
       isOwner: true;
-      event: Pick<CalendarEvent, 'userId' | 'title' | 'startTime' | 'endTime'>;
     }
 > {
   const event = await prisma.calendarEvent.findUnique({
     where: { id: eventId },
     select: {
       userId: true,
-      title: true,
-      startTime: true,
-      endTime: true,
     },
   });
 
@@ -196,7 +152,8 @@ async function getCalendarEventAndCheckOwnership(
   if (event.userId !== userId) {
     return { error: 'Forbidden', isOwner: false };
   }
-  return { isOwner: true, event };
+
+  return { isOwner: true };
 }
 
 export async function deleteCalendarEvent(
@@ -282,14 +239,7 @@ export async function updateCalendarEvent(
     };
   }
 
-  const {
-    eventId,
-    title,
-    eventDate,
-    startTimeLocal,
-    endTimeLocal,
-    clientTimezone,
-  } = validationResult.data;
+  const { eventId, title, start, end } = validationResult.data;
 
   try {
     const ownership = await getCalendarEventAndCheckOwnership(eventId, userId);
@@ -300,83 +250,14 @@ export async function updateCalendarEvent(
         error: ownership.error || 'Operation not allowed.',
       };
     }
-    const existingEvent = ownership.event;
-
-    let newStartDateTime: Date | undefined = undefined;
-    let newEndDateTime: Date | undefined = undefined;
-
-    // Build the updated start and end DateTimes
-    if (eventDate || startTimeLocal) {
-      // Start with existing date to avoid unwanted modifications when only time is modified
-      const existingStartDateLocal = toZonedTime(
-        existingEvent.startTime,
-        clientTimezone!
-      );
-
-      const year = eventDate?.year ?? existingStartDateLocal.getFullYear();
-      const month =
-        (eventDate?.month ?? existingStartDateLocal.getMonth() + 1) - 1;
-      const date = eventDate?.date ?? existingStartDateLocal.getDate();
-      const hours = startTimeLocal?.hours ?? existingStartDateLocal.getHours();
-      const minutes =
-        startTimeLocal?.minutes ?? existingStartDateLocal.getMinutes();
-
-      // Build date in local timezone
-      const localStartDate = new Date(year, month, date, hours, minutes, 0, 0);
-
-      // Convert local datetime to UTC
-      newStartDateTime = fromZonedTime(localStartDate, clientTimezone!);
-    }
-
-    if (eventDate || endTimeLocal) {
-      // Start with existing date to avoid unwanted modifications when only time is modified
-      const existingEndDateLocal = toZonedTime(
-        existingEvent.endTime,
-        clientTimezone!
-      );
-
-      const year = eventDate?.year ?? existingEndDateLocal.getFullYear();
-      const month =
-        (eventDate?.month ?? existingEndDateLocal.getMonth() + 1) - 1; // Month is 0-indexed in JavaScript Date
-      const date = eventDate?.date ?? existingEndDateLocal.getDate();
-      const hours = endTimeLocal?.hours ?? existingEndDateLocal.getHours();
-      const minutes =
-        endTimeLocal?.minutes ?? existingEndDateLocal.getMinutes();
-
-      // Build date in local timezone
-      const localEndDate = new Date(year, month, date, hours, minutes, 0, 0);
-
-      // Convert local datetime to UTC
-      newEndDateTime = fromZonedTime(localEndDate, clientTimezone!);
-    }
-
-    // Validation
-    if (
-      newStartDateTime &&
-      newEndDateTime &&
-      newEndDateTime <= newStartDateTime
-    ) {
-      return {
-        success: false,
-        error: 'End time must be after start time',
-      };
-    }
-
-    // Construct the update data object
-    const updateData: Prisma.CalendarEventUpdateArgs['data'] = {};
-    if (title !== undefined) {
-      updateData.title = title;
-    }
-    if (newStartDateTime) {
-      updateData.startTime = newStartDateTime;
-    }
-    if (newEndDateTime) {
-      updateData.endTime = newEndDateTime;
-    }
 
     const updatedEvent = await prisma.calendarEvent.update({
       where: { id: eventId, userId: userId },
-      data: updateData,
+      data: {
+        title,
+        start,
+        end,
+      },
     });
 
     return {

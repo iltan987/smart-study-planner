@@ -29,26 +29,19 @@ import type {
   CreateCalendarEventInputSchema,
 } from '@/schemas/calendar.schema';
 import { addCalendarEventFormSchema } from '@/schemas/calendar.schema';
-import type { HoursMinutes, YearMonthDate } from '@/schemas/time.schema';
-import type { OmitTyped } from '@/types/omit';
-import { formatToYYYYMMDD } from '@/utils/client-date.util';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { CalendarEvent } from '@prisma/client';
-import { format, parse, parseISO } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
+import { format, parse } from 'date-fns';
 import { CalendarIcon, Loader2 } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 interface EventFormDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSubmit: (
-    data: OmitTyped<CreateCalendarEventInputSchema, 'clientTimezone'>
-  ) => Promise<void>;
+  onSubmit: (data: CreateCalendarEventInputSchema) => Promise<void>;
   eventToEdit?: CalendarEvent | null;
-  initialDate?: Date;
-  userTimezone: string;
+  initialDate: Date;
   isSubmittingForm?: boolean;
   isDeletingEvent?: boolean;
   onDelete?: (eventId: string) => Promise<void>;
@@ -60,7 +53,6 @@ export function EventFormDialog({
   onSubmit,
   eventToEdit,
   initialDate,
-  userTimezone,
   isSubmittingForm,
   isDeletingEvent,
   onDelete,
@@ -70,13 +62,11 @@ export function EventFormDialog({
   const defaultFormValues: AddCalendarEventFormSchema = useMemo(
     () => ({
       title: '',
-      eventDate: initialDate
-        ? format(initialDate, 'yyyy-MM-dd')
-        : format(new Date(), 'yyyy-MM-dd'),
+      eventDate: '',
       startTimeLocal: '09:00',
       endTimeLocal: '10:00',
     }),
-    [initialDate]
+    []
   );
 
   const form = useForm<AddCalendarEventFormSchema>({
@@ -85,71 +75,89 @@ export function EventFormDialog({
     mode: 'onChange',
   });
 
+  const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       if (isEditMode && eventToEdit) {
-        const localStartTime = toZonedTime(
-          typeof eventToEdit.startTime === 'string'
-            ? parseISO(eventToEdit.startTime)
-            : eventToEdit.startTime,
-          userTimezone
-        );
-        const localEndTime = toZonedTime(
-          typeof eventToEdit.endTime === 'string'
-            ? parseISO(eventToEdit.endTime)
-            : eventToEdit.endTime,
-          userTimezone
-        );
         form.reset({
           title: eventToEdit.title,
-          eventDate: format(localStartTime, 'yyyy-MM-dd'),
-          startTimeLocal: format(localStartTime, 'HH:mm'),
-          endTimeLocal: format(localEndTime, 'HH:mm'),
+          eventDate: format(eventToEdit.start, 'PP'),
+          startTimeLocal: format(eventToEdit.start, 'HH:mm'),
+          endTimeLocal: format(eventToEdit.end, 'HH:mm'),
         });
       } else {
-        const dateToUse = initialDate || new Date();
         form.reset({
           ...defaultFormValues,
-          eventDate: format(dateToUse, 'yyyy-MM-dd'),
+          eventDate: format(initialDate, 'PP'),
         });
       }
     }
-  }, [
-    defaultFormValues,
-    eventToEdit,
-    form,
-    initialDate,
-    isEditMode,
-    isOpen,
-    userTimezone,
-  ]);
+  }, [defaultFormValues, eventToEdit, form, initialDate, isEditMode, isOpen]);
 
   const handleSubmitLocal = async (formData: AddCalendarEventFormSchema) => {
-    const [year, month, day] = formData.eventDate.split('-').map(Number);
-    const eventDateObj: YearMonthDate = { year, month, date: day };
+    if (isSubmittingForm) return;
+    const isValidDate = formData.eventDate && formData.eventDate !== '';
+    if (!isValidDate) {
+      form.setError('eventDate', {
+        type: 'manual',
+        message: 'Please select a valid date.',
+      });
+      return;
+    }
+    if (!formData.startTimeLocal) {
+      form.setError('startTimeLocal', {
+        type: 'manual',
+        message: 'Start time is required.',
+      });
+      return;
+    }
+    if (!formData.endTimeLocal) {
+      form.setError('endTimeLocal', {
+        type: 'manual',
+        message: 'End time is required.',
+      });
+      return;
+    }
+    if (formData.startTimeLocal === '') {
+      form.setError('startTimeLocal', {
+        type: 'manual',
+        message: 'Start time is required.',
+      });
+      return;
+    }
+    if (formData.endTimeLocal === '') {
+      form.setError('endTimeLocal', {
+        type: 'manual',
+        message: 'End time is required.',
+      });
+      return;
+    }
+    if (formData.startTimeLocal === formData.endTimeLocal) {
+      form.setError('endTimeLocal', {
+        type: 'manual',
+        message: 'End time must be after start time.',
+      });
+      return;
+    }
 
-    const [startHours, startMinutes] = formData.startTimeLocal
-      .split(':')
-      .map(Number);
-    const startTimeObj: HoursMinutes = {
-      hours: startHours,
-      minutes: startMinutes,
-    };
+    const parsedEventDate = parse(formData.eventDate, 'PP', new Date());
+    const startTime = parse(formData.startTimeLocal, 'HH:mm', parsedEventDate);
+    const endTime = parse(formData.endTimeLocal, 'HH:mm', parsedEventDate);
 
-    const [endHours, endMinutes] = formData.endTimeLocal.split(':').map(Number);
-    const endTimeObj: HoursMinutes = { hours: endHours, minutes: endMinutes };
+    if (startTime >= endTime) {
+      form.setError('endTimeLocal', {
+        type: 'manual',
+        message: 'End time must be after start time.',
+      });
+      return;
+    }
 
-    const submissionData: OmitTyped<
-      CreateCalendarEventInputSchema,
-      'clientTimezone'
-    > = {
+    await onSubmit({
       title: formData.title,
-      eventDate: eventDateObj,
-      startTimeLocal: startTimeObj,
-      endTimeLocal: endTimeObj,
-    };
-
-    await onSubmit(submissionData);
+      start: startTime,
+      end: endTime,
+    });
   };
 
   const handleDeleteClick = async () => {
@@ -202,7 +210,10 @@ export function EventFormDialog({
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Date</FormLabel>
-                  <Popover>
+                  <Popover
+                    open={isDatePopoverOpen}
+                    onOpenChange={setIsDatePopoverOpen}
+                  >
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
@@ -212,15 +223,9 @@ export function EventFormDialog({
                             !field.value && 'text-muted-foreground'
                           )}
                           disabled={anyLoading}
+                          onClick={() => setIsDatePopoverOpen(true)}
                         >
-                          {field.value ? (
-                            format(
-                              parse(field.value, 'yyyy-MM-dd', new Date()),
-                              'PPP'
-                            )
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
+                          {field.value || <span>Pick a date</span>}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
                       </FormControl>
@@ -228,14 +233,12 @@ export function EventFormDialog({
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={
-                          field.value
-                            ? parse(field.value, 'yyyy-MM-dd', new Date())
-                            : undefined
-                        }
-                        onSelect={(date) =>
-                          field.onChange(date ? formatToYYYYMMDD(date) : '')
-                        }
+                        weekStartsOn={1}
+                        selected={parse(field.value, 'PP', new Date())}
+                        onSelect={(date) => {
+                          field.onChange(date ? format(date, 'PP') : '');
+                          setIsDatePopoverOpen(false);
+                        }}
                         initialFocus
                       />
                     </PopoverContent>

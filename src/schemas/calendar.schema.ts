@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { hoursMinutesSchema, yearMonthDateSchema } from './time.schema';
 
 export const addCalendarEventFormSchema = z
   .object({
@@ -36,26 +35,33 @@ export const createCalendarEventInputSchema = z
   .object({
     title: z
       .string()
-      .min(1, { message: 'Title is required.' })
-      .max(255, { message: 'Title must be 255 characters or less.' }),
-    eventDate: yearMonthDateSchema,
-    startTimeLocal: hoursMinutesSchema,
-    endTimeLocal: hoursMinutesSchema,
-    clientTimezone: z.string({
-      required_error: 'Client timezone is required.',
-    }),
+      .nonempty({ message: 'Title is required.' })
+      .max(255, { message: 'Title must be 255 characters or less.' })
+      .refine((val) => val.trim().length > 0, {
+        message: 'Title is required.',
+      }),
+    start: z.date(),
+    end: z.date(),
   })
   .refine(
+    (data) =>
+      data.start.getFullYear() === data.end.getFullYear() &&
+      data.start.getMonth() === data.end.getMonth() &&
+      data.start.getDate() === data.end.getDate(),
+    {
+      message: 'Start and end times must be on the same day.',
+      path: ['end'],
+    }
+  )
+  .refine(
     (data) => {
-      const start = data.startTimeLocal;
-      const end = data.endTimeLocal;
-      const startMinutes = start.hours * 60 + start.minutes;
-      const endMinutes = end.hours * 60 + end.minutes;
-      return endMinutes > startMinutes;
+      const start = data.start;
+      const end = data.end;
+      return end > start;
     },
     {
       message: 'End time must be after start time on the same day.',
-      path: ['endTimeLocal'],
+      path: ['end'],
     }
   );
 export type CreateCalendarEventInputSchema = z.infer<
@@ -69,52 +75,57 @@ export const updateCalendarEventInputSchema = z
     }),
     title: z
       .string()
-      .min(1, { message: 'Title is required.' })
+      .nonempty({ message: 'Title is required.' })
       .max(255, { message: 'Title must be 255 characters or less.' })
-      .optional(), // Title is optional for updates
-    eventDate: yearMonthDateSchema.optional(),
-    startTimeLocal: hoursMinutesSchema.optional(),
-    endTimeLocal: hoursMinutesSchema.optional(),
-    clientTimezone: z.string().optional(),
+      .refine((val) => val.trim().length > 0, {
+        message: 'Title is required.',
+      }),
+    start: z.date(),
+    end: z.date(),
   })
   .refine(
-    (data) => {
-      const start = data.startTimeLocal;
-      const end = data.endTimeLocal;
-      if (start && end) {
-        const startMinutes = start.hours * 60 + start.minutes;
-        const endMinutes = end.hours * 60 + end.minutes;
-        return endMinutes > startMinutes;
-      }
-      return true; // If one of them is not provided, we skip this check
-    },
+    (data) =>
+      data.start.getFullYear() === data.end.getFullYear() &&
+      data.start.getMonth() === data.end.getMonth() &&
+      data.start.getDate() === data.end.getDate(),
     {
-      message: 'End time must be after start time on the same day.',
-      path: ['endTimeLocal'],
+      message: 'Start and end times must be on the same day.',
+      path: ['end'],
     }
   )
   .refine(
     (data) => {
-      const timeFieldsProvided =
-        data.eventDate || data.startTimeLocal || data.endTimeLocal;
-      if (timeFieldsProvided && !data.clientTimezone) {
-        return false; // clientTimezone is required if any time fields are provided
-      }
-      return true; // If no time fields are provided, we skip this check
+      const start = data.start;
+      const end = data.end;
+      return end > start;
     },
     {
-      message: 'Client timezone is required if updating event date or times.',
-      path: ['clientTimezone'],
+      message: 'End time must be after start time on the same day.',
+      path: ['end'],
     }
   );
 export type UpdateCalendarEventInputSchema = z.infer<
   typeof updateCalendarEventInputSchema
 >;
 
-export const getCalendarEventsInputSchema = z.object({
-  date: yearMonthDateSchema,
-  timezone: z.string({ required_error: 'Client timezone is required.' }),
-});
+export const getCalendarEventsInputSchema = z
+  .object({
+    start: z.date(),
+    end: z.date(),
+  })
+  .refine(
+    (data) => {
+      const start = data.start;
+      const end = data.end;
+      const oneWeekInMilliseconds = 7 * 24 * 60 * 60 * 1000;
+      return end.getTime() - start.getTime() <= oneWeekInMilliseconds;
+    },
+    {
+      message:
+        'The difference between start and end must be no more than 1 week.',
+      path: ['end'],
+    }
+  );
 export type GetCalendarEventsInputSchema = z.infer<
   typeof getCalendarEventsInputSchema
 >;
