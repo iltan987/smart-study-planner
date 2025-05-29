@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -7,18 +8,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// --- Enums ---
-enum Gender {
-  MALE
-  FEMALE
-  OTHER
-  PREFER_NOT_TO_SAY
-}
+model User {
+  id       String @id @default(cuid())
+  name     String
+  email    String @unique
+  password String
 
-enum Language {
-  ENGLISH
-  TURKISH
-  PERSIAN
+  Todo          Todo[]
+  CalendarEvent CalendarEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum TodoPriority {
@@ -42,69 +42,15 @@ enum TodoStatus {
   MISSED
 }
 
-enum AiInteractionContentType {
-  USER_INPUT_MESSAGE
-  MODEL_RESPONSE_MESSAGE
-  FUNCTION_CALL_REQUEST
-  FUNCTION_CALL_RESULT
-}
-
-enum MessageRating {
-  UPVOTE
-  DOWNVOTE
-}
-
-// --- Models ---
-model User {
-  id       String @id @default(cuid())
-  name     String
-  email    String @unique
-  password String
-
-  profile             UserProfile?
-  todos               Todo[]
-  calendarEvents      CalendarEvent[]
-  aiInteractionEvents AiInteractionEvent[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model UserProfile {
-  id     String @id @default(cuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  birthDate DateTime? @db.Date
-  gender    Gender?
-  language  Language?
-
-  school              String?
-  degree              String?
-  fieldOfStudy        String?
-  educationStartDate  DateTime?
-  isFinished          Boolean?  @default(false)
-  finishDate          DateTime?
-  estimatedFinishDate DateTime?
-  gpa                 Float?
-
-  notificationsEnabled Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 model Todo {
   id     String @id @default(cuid())
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  isAllDay Boolean   @default(false)
-  date     DateTime? @db.Date // For all-day todos
-
   title       String
   description String?
   dueTime     DateTime? // For timed todos
+  date        DateTime?    @db.Date // For all-day todos
   priority    TodoPriority @default(MEDIUM)
   category    TodoCategory @default(STUDY)
   duration    Int? // in minutes
@@ -113,11 +59,8 @@ model Todo {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([userId, date])
   @@index([userId, dueTime])
-  @@index([userId, date, isAllDay]) // Covers all-day todos: WHERE userId = ? AND isAllDay = true AND date = ?
-  @@index([userId, status])
-  @@index([userId, priority, dueTime])
-  @@index([userId, priority, date, isAllDay])
 }
 
 model CalendarEvent {
@@ -125,73 +68,12 @@ model CalendarEvent {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  title     String
-  startTime DateTime // Stored in UTC
-  endTime   DateTime // Stored in UTC
+  title String
+  start DateTime
+  end   DateTime
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([userId, startTime, endTime])
-}
-
-// --- Central AI Interaction Event Model ---
-model AiInteractionEvent {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  timestamp DateTime                 @default(now()) // Logical time of the interaction
-  type      AiInteractionContentType
-
-  // Foreign keys to specific content types (one-to-one)
-  userInputMessageId     String? @unique
-  modelResponseMessageId String? @unique
-  functionCallRequestId  String? @unique
-  functionCallResultId   String? @unique
-
-  // Relations to specific content models
-  userInputMessage     UserInputMessage?      @relation("UserInputMessageToEvent", fields: [userInputMessageId], references: [id], onDelete: Cascade)
-  modelResponseMessage ModelResponseMessage?  @relation("ModelResponseMessageToEvent", fields: [modelResponseMessageId], references: [id], onDelete: Cascade)
-  functionCallRequest  AiFunctionCallRequest? @relation("FunctionCallRequestToEvent", fields: [functionCallRequestId], references: [id], onDelete: Cascade)
-  functionCallResult   AiFunctionCallResult?  @relation("FunctionCallResultToEvent", fields: [functionCallResultId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now()) // Record creation time
-  updatedAt DateTime @updatedAt
-
-  @@index([userId, timestamp]) // For querying user's interaction history chronologically
-  @@index([type]) // For filtering by interaction type
-}
-
-// --- Specific Content Models for AI Interactions ---
-
-model UserInputMessage {
-  id   String @id @default(cuid())
-  text String
-
-  event AiInteractionEvent? @relation("UserInputMessageToEvent")
-}
-
-model ModelResponseMessage {
-  id     String         @id @default(cuid())
-  text   String
-  rating MessageRating?
-
-  event AiInteractionEvent? @relation("ModelResponseMessageToEvent")
-}
-
-model AiFunctionCallRequest {
-  id   String @id @default(cuid())
-  name String // Name of the function called
-  args Json // Arguments passed to the function
-
-  event AiInteractionEvent? @relation("FunctionCallRequestToEvent")
-}
-
-model AiFunctionCallResult {
-  id       String @id @default(cuid())
-  name     String // Name of the function whose result this is
-  response Json // Result returned by the function
-
-  event AiInteractionEvent? @relation("FunctionCallResultToEvent")
+  @@index([userId, start, end])
 }
