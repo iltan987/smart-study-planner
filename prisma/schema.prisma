@@ -15,6 +15,7 @@ model User {
 
   Todo          Todo[]
   CalendarEvent CalendarEvent[]
+  UserProfile   UserProfile?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -75,4 +76,35 @@ model CalendarEvent {
   updatedAt DateTime @updatedAt
 
   @@index([userId, start, end])
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+model UserProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  birthDate     DateTime?       @db.Date
+  gender        Gender?
+  nationality   String?
+  languages     String[]
+  EducationInfo EducationInfo[]
+}
+
+model EducationInfo {
+  id            String      @id @default(cuid())
+  userProfileId String
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  institution  String
+  degree       String
+  fieldOfStudy String
+  startDate    DateTime  @db.Date
+  endDate      DateTime? @db.Date
 }
