@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import type { YearMonthDate } from '@/schemas/time.schema';
 import type { AddTodoFormSchema } from '@/schemas/todos.schema';
 import {
   addTodoFormSchema,
@@ -75,19 +76,17 @@ export function AddTodoDialog({
 
   const handleSubmit = (formData: AddTodoFormSchema) => {
     let dueTime: Date | undefined;
-    let date: Date | undefined;
+    let date: YearMonthDate | undefined;
     if (formData.timeOfDay !== '') {
       const [hours, minutes] = formData.timeOfDay.split(':').map(Number);
       dueTime = new Date(selectedDate);
       dueTime.setHours(hours, minutes, 0, 0);
     } else {
-      date = new Date(
-        Date.UTC(
-          selectedDate.getFullYear(),
-          selectedDate.getMonth(),
-          selectedDate.getDate()
-        )
-      );
+      date = {
+        year: selectedDate.getFullYear(),
+        monthIndex: selectedDate.getMonth(),
+        date: selectedDate.getDate(),
+      };
     }
 
     onSubmit({

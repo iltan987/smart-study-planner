@@ -15,7 +15,7 @@ import {
   updateTodoStatusOnlySchema,
 } from '@/schemas/todos.schema';
 import type { Result } from '@/types/response';
-import type { Todo } from '@prisma/client';
+import type { Prisma, Todo } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 export async function getTodos(
@@ -40,14 +40,14 @@ export async function getTodos(
       };
     }
 
-    const { utc, start, end } = validationResult.data;
+    const { date, start, end } = validationResult.data;
 
     const todos = await prisma.todo.findMany({
       where: {
         userId,
         OR: [
           {
-            date: utc,
+            date: new Date(Date.UTC(date.year, date.monthIndex, date.date)),
           },
           {
             dueTime: {
@@ -94,11 +94,19 @@ export async function createTodo(
       };
     }
 
+    const { date, ...rest } = validationResult.data;
+
+    const payload: Prisma.TodoCreateArgs['data'] = {
+      userId,
+      ...rest,
+    };
+
+    if (date) {
+      payload.date = new Date(Date.UTC(date.year, date.monthIndex, date.date));
+    }
+
     const newTodo = await prisma.todo.create({
-      data: {
-        userId,
-        ...validationResult.data,
-      },
+      data: payload,
     });
 
     return {

@@ -105,13 +105,11 @@ export default function TodosPage() {
 
     try {
       const res = await getTodos({
-        utc: new Date(
-          Date.UTC(
-            selectedDate.getFullYear(),
-            selectedDate.getMonth(),
-            selectedDate.getDate()
-          )
-        ),
+        date: {
+          year: selectedDate.getFullYear(),
+          monthIndex: selectedDate.getMonth(),
+          date: selectedDate.getDate(),
+        },
         start: startOfDay(selectedDate),
         end: endOfDay(selectedDate),
       });
@@ -211,7 +209,11 @@ export default function TodosPage() {
     try {
       const res = await createTodo({
         title: currentQuickTodoTitle,
-        date: allDayDate,
+        date: {
+          year: selectedDate.getFullYear(),
+          monthIndex: selectedDate.getMonth(),
+          date: selectedDate.getDate(),
+        },
       } as CreateTodoInputSchema);
 
       if (!res.success) {
@@ -255,13 +257,23 @@ export default function TodosPage() {
 
     const newTempId = `optimistic-add-${Date.now()}`;
 
+    const allDayTodo = formData.date
+      ? new Date(
+          Date.UTC(
+            formData.date.year,
+            formData.date.monthIndex,
+            formData.date.date
+          )
+        )
+      : null;
+
     const optimisticTodo: ClientTodo = {
       tempId: newTempId,
       id: newTempId,
       title: formData.title,
       description: formData.description || null,
       dueTime: formData.dueTime || null,
-      date: formData.date || null,
+      date: allDayTodo,
       priority: formData.priority || TodoPriority.MEDIUM,
       category: formData.category || TodoCategory.STUDY,
       duration: formData.duration || null,

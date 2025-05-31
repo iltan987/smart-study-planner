@@ -1,5 +1,6 @@
 import { TodoCategory, TodoPriority, TodoStatus } from '@prisma/client';
 import { z } from 'zod';
+import { yearMonthDate } from './time.schema';
 
 export const addTodoFormSchema = z.object({
   title: z
@@ -34,7 +35,7 @@ export const createTodoInputSchema = z
       .max(1000, { message: 'Description must be 1000 characters or less.' })
       .transform((val) => (val === '' ? undefined : val))
       .optional(),
-    date: z.date().optional(),
+    date: yearMonthDate.optional(), // For all-day todos
     dueTime: z.date().optional(),
     duration: z
       .number()
@@ -73,7 +74,7 @@ export type UpdateTodoStatusOnlyInput = z.infer<
 
 export const getTodosInputSchema = z
   .object({
-    utc: z.date(),
+    date: yearMonthDate,
     start: z.date(),
     end: z.date(),
   })
