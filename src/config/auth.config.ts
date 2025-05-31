@@ -1,68 +1,69 @@
-import { InvalidCredentialsError } from '@/errors/InvalidCredentialsError';
-import { loginSchema } from '@/schemas/auth/login.schema';
-import { comparePassword } from '@/utils/crypto.util';
-import { getUserByEmail } from '@/utils/user.util';
-import type { DefaultSession, NextAuthConfig } from 'next-auth';
-import Credentials from 'next-auth/providers/credentials';
+import type { NextAuthConfig } from 'next-auth';
+import { NextResponse } from 'next/server';
+import { credentialsProvider } from './providers';
 
-declare module 'next-auth' {
-  interface Session {
-    user: {
-      id: string;
-    } & DefaultSession['user'];
-  }
-}
-
-import 'next-auth/jwt';
-
-declare module 'next-auth/jwt' {
-  interface JWT {
-    id: string;
-  }
-}
-
-export default {
-  providers: [
-    Credentials({
-      async authorize(credentials) {
-        const parsedCredentials = await loginSchema.safeParseAsync(credentials);
-
-        if (!parsedCredentials.success) {
-          throw new InvalidCredentialsError({
-            errors: parsedCredentials.error.flatten(),
-          });
-        }
-
-        const { email, password } = parsedCredentials.data;
-
-        const user = await getUserByEmail(email);
-
-        if (
-          !user ||
-          !user.password ||
-          !(await comparePassword(password, user.password))
-        ) {
-          throw new InvalidCredentialsError();
-        }
-
-        const { password: _, ...userWithoutPassword } = user;
-        return userWithoutPassword;
-      },
-    }),
-  ],
+const config = {
+  providers: [credentialsProvider],
   callbacks: {
-    jwt: async ({ token, user }) => {
-      if (user?.id) {
-        token.id = user.id;
-      }
+    async jwt(params) {
+      const { user, token, trigger, session } = params;
+      if (user)
+        Object.assign(token, {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+        });
+      if (trigger === 'update' && session) Object.assign(token, session);
       return token;
     },
-    session: async ({ session, token }) => {
-      session.user.id = token.id;
-      return session;
+    async session(params) {
+      if (params.token && params.session.user) {
+        params.session.user.id = params.token.id;
+        params.session.user.email = params.token.email;
+        params.session.user.name = params.token.name;
+      }
+      return params.session;
+    },
+    async authorized(params) {
+      const { nextUrl } = params.request;
+      const isAuthenticated = !!params.auth;
+      const path = nextUrl.pathname;
+
+      const publicAuthRoutes = ['/login', '/register'];
+      const protectedRoutes = [
+        '/',
+        '/calendar',
+        '/chatbot',
+        '/profile',
+        '/settings',
+        '/todos',
+      ];
+
+      const isPublicAuthRoute = publicAuthRoutes.some((route) =>
+        path.startsWith(route)
+      );
+      const isProtectedRoute = protectedRoutes.some(
+        (route) => path === route || path.startsWith(route + '/')
+      );
+
+      if (isPublicAuthRoute) {
+        if (isAuthenticated) {
+          return NextResponse.redirect(new URL('/', nextUrl.origin));
+        }
+        return true;
+      }
+
+      if (isProtectedRoute) {
+        return isAuthenticated;
+      }
+
+      return true;
     },
   },
   pages: {
     signIn: '/login',
   },
+  debug: process.env.NODE_ENV === 'development',
 } satisfies NextAuthConfig;
+
+export default config;

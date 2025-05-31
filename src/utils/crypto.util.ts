@@ -1,7 +1,23 @@
 // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto
 
+const ALGORITHM = 'PBKDF2';
+const HASH_ALGORITHM = 'SHA-512';
 const ITERATIONS = 210000; // OWASP Standards recommended (minimum) Reference: https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#pbkdf2
-const SALT_LENGTH = 16; // 16 bytes (128 bits)
+const KEY_LENGTH_BITS = 512;
+const SALT_LENGTH = 16; // 128 bits
+
+function ab2hex(ab: ArrayBuffer): string {
+  return Array.from(new Uint8Array(ab))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function hex2ab(hex: string): ArrayBuffer {
+  const typedArray = new Uint8Array(
+    hex.match(/[\da-f]{2}/gi)!.map((h) => parseInt(h, 16))
+  );
+  return typedArray.buffer;
+}
 
 // Constant-time comparison helper
 function constantTimeCompare(a: ArrayBuffer, b: ArrayBuffer): boolean {
@@ -14,7 +30,7 @@ function constantTimeCompare(a: ArrayBuffer, b: ArrayBuffer): boolean {
 
   let result = 0;
   for (let i = 0; i < aBytes.length; i++) {
-    result |= aBytes[i] ^ bBytes[i];
+    result |= aBytes[i] ^ bBytes[i]; // XOR current bytes and OR with accumulated difference
   }
   return result === 0;
 }
@@ -27,75 +43,54 @@ export async function hashPassword(password: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(password),
-    { name: 'PBKDF2' },
+    { name: ALGORITHM },
     false,
-    ['deriveBits', 'deriveKey']
+    ['deriveBits']
   );
 
-  // Derive key using PBKDF2
-  const derivedKey = await crypto.subtle.deriveKey(
+  // Derive bits using PBKDF2
+  const derivedBits = await crypto.subtle.deriveBits(
     {
-      name: 'PBKDF2',
-      hash: 'SHA-512',
+      name: ALGORITHM,
       salt,
+      hash: HASH_ALGORITHM,
       iterations: ITERATIONS,
     },
     key,
-    { name: 'HMAC', hash: 'SHA-512' },
-    true,
-    ['sign']
+    KEY_LENGTH_BITS
   );
 
-  // Export derived key
-  const exportedKey = await crypto.subtle.exportKey('raw', derivedKey);
-
-  // Format: iterations:salt:key (all in hex)
-  return [
-    ITERATIONS.toString(16),
-    Buffer.from(salt).toString('hex'),
-    Buffer.from(exportedKey).toString('hex'),
-  ].join(':');
+  // Format: salt:key (all hex)
+  return [ab2hex(salt.buffer), ab2hex(derivedBits)].join(':');
 }
 
 export async function comparePassword(
   password: string,
   hashedPassword: string
 ): Promise<boolean> {
-  const [iterationsHex, saltHex, storedKeyHex] = hashedPassword.split(':');
-  const iterations = parseInt(iterationsHex, 16);
-  const salt = Buffer.from(saltHex, 'hex');
-  const storedKey = Buffer.from(storedKeyHex, 'hex');
+  const [saltHex, storedKeyHex] = hashedPassword.split(':');
+  const salt = hex2ab(saltHex);
+  const storedKey = hex2ab(storedKeyHex);
 
   // Import password as crypto key with deriveKey usage
   const key = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(password),
-    { name: 'PBKDF2' },
+    { name: ALGORITHM },
     false,
-    ['deriveBits', 'deriveKey']
+    ['deriveBits']
   );
 
-  const derivedKey = await crypto.subtle.deriveKey(
+  const derivedBits = await crypto.subtle.deriveBits(
     {
-      name: 'PBKDF2',
+      name: ALGORITHM,
       salt,
-      iterations,
-      hash: 'SHA-512',
+      iterations: ITERATIONS,
+      hash: HASH_ALGORITHM,
     },
     key,
-    { name: 'HMAC', hash: 'SHA-512' },
-    true,
-    ['sign']
+    KEY_LENGTH_BITS
   );
 
-  const exportedKey = await crypto.subtle.exportKey('raw', derivedKey);
-
-  // Convert storedKey to ArrayBuffer
-  const storedKeyArrayBuffer = storedKey.buffer.slice(
-    storedKey.byteOffset,
-    storedKey.byteOffset + storedKey.byteLength
-  );
-
-  // Use our constant-time comparison
-  return constantTimeCompare(exportedKey, storedKeyArrayBuffer);
+  return constantTimeCompare(derivedBits, storedKey);
 }
