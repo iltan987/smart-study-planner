@@ -1,5 +1,4 @@
 import { FlatCompat } from '@eslint/eslintrc';
-import { globalIgnores } from 'eslint/config';
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -11,7 +10,6 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
-  globalIgnores(['src/generated/']),
   ...compat.config({
     extends: [
       'next/core-web-vitals',
@@ -29,6 +27,14 @@ const eslintConfig = [
         },
       ],
     },
+    ignorePatterns: [
+      'node_modules/*',
+      '.next/*',
+      // Shadcn files
+      'src/components/ui/*',
+      'src/hooks/use-mobile.ts',
+      'src/lib/utils.ts',
+    ],
   }),
 ];
 
