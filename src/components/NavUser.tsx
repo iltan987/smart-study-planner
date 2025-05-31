@@ -32,7 +32,7 @@ import { Skeleton } from './ui/skeleton';
 
 export function NavUser() {
   const { data: session, status } = useSession({ required: true });
-  const { isMobile, open } = useSidebar();
+  const { isMobile, open, setOpenMobile } = useSidebar();
 
   const { initials, selectedBgColor, selectedTextColor } = useMemo(() => {
     if (!session?.user.name)
@@ -93,7 +93,7 @@ export function NavUser() {
 
   return (
     <SidebarMenu>
-      <SidebarMenuItem>
+      <SidebarMenuItem onClick={() => setOpenMobile(false)}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
