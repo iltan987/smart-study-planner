@@ -26,6 +26,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 
 export default function LoginPageContent() {
   const router = useRouter();
@@ -70,6 +71,7 @@ export default function LoginPageContent() {
           }
         } else if (result.ok) {
           router.push(callbackUrl);
+          toast.success('Login successful!');
         } else {
           setError('Login failed. Please try again.');
         }
