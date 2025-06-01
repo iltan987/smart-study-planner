@@ -32,12 +32,12 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import {
+import type {
   UpdateUserProfileFormInput,
-  updateUserProfileFormSchema,
   UserProfileInput,
 } from '@/schemas/settings.schema';
-import { YearMonthDate } from '@/schemas/time.schema';
+import { updateUserProfileFormSchema } from '@/schemas/settings.schema';
+import type { YearMonthDate } from '@/schemas/time.schema';
 import {
   avatarBackgroundColors,
   avatarTextColors,
@@ -57,7 +57,7 @@ import {
   Trash2,
   XIcon,
 } from 'lucide-react';
-import { User } from 'next-auth';
+import type { User } from 'next-auth';
 import { useSession } from 'next-auth/react';
 import { useTheme } from 'next-themes';
 import { useMemo, useState } from 'react';
@@ -143,7 +143,7 @@ export default function SettingsPageContent({
       selectedBgColor: bgColor,
       selectedTextColor: textColor,
     };
-  }, [profileAndEducationForm.watch('name'), initialSessionData.name]);
+  }, [initialSessionData.name]);
 
   const onSubmitProfileAndEducation = async (
     data: UpdateUserProfileFormInput
@@ -619,8 +619,8 @@ export default function SettingsPageContent({
                 <CardHeader>
                   <CardTitle>Application Settings</CardTitle>
                   <CardDescription>
-                    Personalize the application's appearance, such as selecting
-                    a color theme.
+                    Personalize the application&apos;s appearance, such as
+                    selecting a color theme.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
