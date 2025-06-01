@@ -396,6 +396,7 @@ export default function CalendarPage() {
                 onClick={handlePreviousWeek}
                 size="icon"
                 aria-label="Previous week"
+                title="Previous week"
                 disabled={!weekStartDate || isLoadingEvents}
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -412,6 +413,7 @@ export default function CalendarPage() {
                 onClick={handleNextWeek}
                 size="icon"
                 aria-label="Next week"
+                title="Next week"
                 disabled={!weekStartDate || isLoadingEvents}
               >
                 <ChevronRight className="h-4 w-4" />
