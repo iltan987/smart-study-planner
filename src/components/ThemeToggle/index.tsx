@@ -6,7 +6,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ThemeDropdownItem } from './ThemeDropdownItem';
+import { ThemeDropdownItems } from './ThemeDropdownItem';
 
 export function ThemeToggle() {
   return (
@@ -19,9 +19,7 @@ export function ThemeToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <ThemeDropdownItem value="light" label="Light" />
-        <ThemeDropdownItem value="dark" label="Dark" />
-        <ThemeDropdownItem value="system" label="System" />
+        <ThemeDropdownItems />
       </DropdownMenuContent>
     </DropdownMenu>
   );

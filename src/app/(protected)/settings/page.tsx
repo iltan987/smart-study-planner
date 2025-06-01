@@ -1,30 +1,50 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Settings as SettingsIcon } from 'lucide-react';
+import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { redirect } from 'next/navigation';
+import SettingsPageContent from './SettingsPageContent';
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const session = await auth();
+  if (!session) {
+    redirect('/login');
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      email: true,
+      name: true,
+      UserProfile: {
+        select: {
+          id: true,
+          birthDate: true,
+          gender: true,
+          languages: true,
+          nationality: true,
+          EducationInfo: {
+            select: {
+              id: true,
+              degree: true,
+              endDate: true,
+              fieldOfStudy: true,
+              institution: true,
+              startDate: true,
+            },
+            orderBy: { startDate: 'desc' },
+          },
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <SettingsIcon className="h-6 w-6 text-primary" />
-          <CardTitle>Application Settings</CardTitle>
-        </div>
-        <CardDescription>
-          Customize your application theme and notification preferences.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="text-muted-foreground">
-          Settings options (Theme toggle, Notification preference) will go here.
-        </p>
-        {/* Settings components will be added later */}
-      </CardContent>
-    </Card>
+    <SettingsPageContent
+      initialUserData={user}
+      initialSessionData={session.user}
+    />
   );
 }
