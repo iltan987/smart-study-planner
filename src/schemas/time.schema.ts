@@ -1,13 +1,18 @@
 import { z } from 'zod';
 
-// Schema for a date with year, month, and date all required
-export const yearMonthDate = z.object({
+// Schema for a date with year and month all required
+export const yearMonth = z.object({
   year: z.number().int().min(0, 'Year must be a positive integer'),
   monthIndex: z
     .number()
     .int()
     .positive('Month index must be a non-negative integer')
     .max(11, 'Month index must be less than 12'),
+});
+export type YearMonth = z.infer<typeof yearMonth>;
+
+// Schema for a date with year, month, and date all required
+export const yearMonthDate = yearMonth.extend({
   date: z
     .number()
     .int()
