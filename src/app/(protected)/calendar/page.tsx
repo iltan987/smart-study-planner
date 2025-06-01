@@ -60,10 +60,10 @@ export default function CalendarPage() {
     setWeekStartDate(startOfWeek(new Date(), { weekStartsOn: 1 }));
   }, []);
 
-  const [weekEndDate, setWeekEndDate] = useState<Date | undefined>();
-  useEffect(() => {
-    setWeekEndDate(endOfWeek(new Date(), { weekStartsOn: 1 }));
-  }, []);
+  const weekEndDate = useMemo(() => {
+    if (!weekStartDate) return undefined;
+    return endOfWeek(weekStartDate, { weekStartsOn: 1 });
+  }, [weekStartDate]);
 
   const [events, setEvents] = useState<ClientCalendarEvent[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
@@ -134,16 +134,10 @@ export default function CalendarPage() {
     setWeekStartDate(
       (prev) => prev && startOfWeek(subWeeks(prev, 1), { weekStartsOn: 1 })
     );
-    setWeekEndDate(
-      (prev) => prev && endOfWeek(subWeeks(prev, 1), { weekStartsOn: 1 })
-    );
   };
   const handleNextWeek = () => {
     setWeekStartDate(
       (prev) => prev && startOfWeek(addWeeks(prev, 1), { weekStartsOn: 1 })
-    );
-    setWeekEndDate(
-      (prev) => prev && endOfWeek(addWeeks(prev, 1), { weekStartsOn: 1 })
     );
   };
   const handleToday = () =>
@@ -402,6 +396,7 @@ export default function CalendarPage() {
                 onClick={handlePreviousWeek}
                 size="icon"
                 aria-label="Previous week"
+                title="Previous week"
                 disabled={!weekStartDate || isLoadingEvents}
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -418,6 +413,7 @@ export default function CalendarPage() {
                 onClick={handleNextWeek}
                 size="icon"
                 aria-label="Next week"
+                title="Next week"
                 disabled={!weekStartDate || isLoadingEvents}
               >
                 <ChevronRight className="h-4 w-4" />
