@@ -69,9 +69,6 @@ export default async function ProfilePage() {
   if (!user) {
     throw new Error('User not found');
   }
-  if (!user.UserProfile) {
-    throw new Error('User profile not found');
-  }
 
   // Calculate avatar properties
   const initials = getInitials(user.name);
@@ -124,7 +121,7 @@ export default async function ProfilePage() {
                       />
                       <span className="text-sm font-medium">Gender:</span>
                       <span className="text-sm">
-                        {user.UserProfile.gender
+                        {user.UserProfile?.gender
                           ? GenderMapping[user.UserProfile.gender]
                           : 'Not specified'}
                       </span>
@@ -137,7 +134,7 @@ export default async function ProfilePage() {
                       />
                       <span className="text-sm font-medium">Nationality:</span>
                       <span className="text-sm">
-                        {user.UserProfile.nationality || 'Not specified'}
+                        {user.UserProfile?.nationality || 'Not specified'}
                       </span>
                     </div>
 
@@ -148,7 +145,7 @@ export default async function ProfilePage() {
                       />
                       <span className="text-sm font-medium">Birth Date:</span>
                       <span className="text-sm">
-                        {user.UserProfile.birthDate
+                        {user.UserProfile?.birthDate
                           ? format(user.UserProfile.birthDate, 'PPP')
                           : 'Not specified'}
                       </span>
@@ -156,7 +153,7 @@ export default async function ProfilePage() {
                   </div>
                 </div>
 
-                {user.UserProfile.languages &&
+                {user.UserProfile?.languages &&
                   user.UserProfile.languages.length > 0 && (
                     <div>
                       <h4 className="text-sm font-medium mb-2">Languages</h4>
@@ -181,7 +178,7 @@ export default async function ProfilePage() {
             <CardDescription>Your educational background</CardDescription>
           </CardHeader>
           <CardContent>
-            {user.UserProfile.EducationInfo &&
+            {user.UserProfile?.EducationInfo &&
             user.UserProfile.EducationInfo.length > 0 ? (
               <div className="space-y-6">
                 {user.UserProfile.EducationInfo.map((education, index) => (
