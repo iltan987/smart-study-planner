@@ -360,12 +360,14 @@ export default function CalendarPage() {
   };
 
   const handleCalendarCellClick = (date: Date) => {
+    setDeletingEventId(null);
     setEditingEvent(null); // Ensure we are in "add" mode
     setSelectedCellDate(date);
     setIsEventFormOpen(true);
   };
 
   const handleEventItemEdit = (event: ClientCalendarEvent) => {
+    setDeletingEventId(null);
     setSelectedCellDate(null);
     setEditingEvent(event); // Ensure we are in "edit" mode
     setIsEventFormOpen(true);
