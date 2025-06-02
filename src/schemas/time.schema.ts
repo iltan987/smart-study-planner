@@ -6,7 +6,7 @@ export const yearMonth = z.object({
   monthIndex: z
     .number()
     .int()
-    .positive('Month index must be a non-negative integer')
+    .min(0, 'Month index must be a non-negative integer')
     .max(11, 'Month index must be less than 12'),
 });
 export type YearMonth = z.infer<typeof yearMonth>;
