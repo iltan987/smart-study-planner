@@ -1,18 +1,23 @@
-import { Brain } from 'lucide-react';
+import { navChatbot } from '@/config/navItems';
+import { CollapsibleContent } from '@radix-ui/react-collapsible';
+import { Brain, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
-import type { ComponentProps } from 'react';
+import { type ComponentProps } from 'react';
+import { Chats } from './chat/ChatMenuItems';
+import { CreateChatSidebarMenuAction } from './chat/CreateChatSidebarMenuAction';
 import { NavUser } from './NavUser';
 import { SidebarMenuComponent } from './SidebarMenuItemComponent';
+import { Collapsible, CollapsibleTrigger } from './ui/collapsible';
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
 } from './ui/sidebar';
 
 export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
@@ -37,18 +42,31 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupContent className="flex flex-col gap-2">
-            <SidebarMenu>
-              <SidebarMenuComponent position={1} />
-            </SidebarMenu>
-          </SidebarGroupContent>
+          <SidebarMenu>
+            <SidebarMenuComponent position={1} />
+            <Collapsible className="group/collapsible" asChild>
+              <SidebarMenuItem>
+                <CollapsibleTrigger asChild>
+                  <SidebarMenuButton>
+                    <navChatbot.icon />
+                    <span>{navChatbot.title}</span>
+                    <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                  </SidebarMenuButton>
+                </CollapsibleTrigger>
+                <CreateChatSidebarMenuAction />
+                <CollapsibleContent>
+                  <SidebarMenuSub>
+                    <Chats />
+                  </SidebarMenuSub>
+                </CollapsibleContent>
+              </SidebarMenuItem>
+            </Collapsible>
+          </SidebarMenu>
         </SidebarGroup>
         <SidebarGroup className="mt-auto">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuComponent position={2} />
-            </SidebarMenu>
-          </SidebarGroupContent>
+          <SidebarMenu>
+            <SidebarMenuComponent position={2} />
+          </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
