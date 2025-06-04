@@ -377,7 +377,7 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 md:gap-6 h-full">
+    <div className="flex flex-col gap-4 md:gap-6 h-full py-4 md:py-6">
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">

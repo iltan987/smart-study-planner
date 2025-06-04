@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ProfileLoading() {
   return (
-    <div className="container mx-auto py-8 max-w-4xl">
+    <div className="container mx-auto py-8 max-w-4xl md:py-6">
       <h1 className="text-2xl font-bold mb-6">Profile</h1>
       <div className="grid gap-6">
         {/* Profile Card Skeleton */}
