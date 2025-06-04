@@ -1,17 +1,56 @@
+import type { RedisClientType } from 'redis';
 import { createClient } from 'redis';
 
-const globalForRedis = globalThis as unknown as { redis: RedisClient };
-const client = createClient({ url: process.env.REDIS_URL });
+type RedisClient = RedisClientType;
 
-client.on('connect', () => console.log('Redis Client Connected'));
-client.on('ready', () => console.log('Redis Client Ready'));
-client.on('end', () => console.log('Redis Client Disconnected'));
-client.on('error', (err) => console.log('Redis Client Error', err));
-client.on('reconnecting', () => console.log('Redis Client Reconnecting'));
+const globalForRedis = globalThis as unknown as {
+  redisClient: RedisClient | undefined;
+};
 
-await client.connect();
+let redisClient: RedisClient;
 
-globalForRedis.redis = client;
-export const redis = globalForRedis.redis || client;
-if (process.env.NODE_ENV !== 'production') globalForRedis.redis = client;
-export type RedisClient = typeof client;
+if (process.env.NODE_ENV === 'production') {
+  redisClient = createClient({ url: process.env.REDIS_URL });
+} else {
+  if (!globalForRedis.redisClient) {
+    globalForRedis.redisClient = createClient({ url: process.env.REDIS_URL });
+  }
+  redisClient = globalForRedis.redisClient;
+}
+
+redisClient.on('connect', () => {
+  console.log('Redis client connected');
+});
+
+redisClient.on('ready', () => {
+  console.log('Redis client is ready');
+});
+
+redisClient.on('end', () => {
+  console.log('Redis client disconnected');
+});
+
+redisClient.on('error', (err) => {
+  console.error('Redis error:', err);
+});
+
+redisClient.on('reconnecting', () => {
+  console.log('Redis client reconnecting...');
+});
+
+export const redis = redisClient;
+
+async function connectRedis() {
+  if (!redis.isOpen) {
+    await redis.connect();
+  }
+}
+
+connectRedis();
+
+export async function disconnectRedis() {
+  if (redis.isOpen) {
+    await redis.quit();
+    console.log('Redis client disconnected gracefully');
+  }
+}
