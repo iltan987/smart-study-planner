@@ -33,7 +33,7 @@ const config = {
       const protectedRoutes = [
         '/',
         '/calendar',
-        '/chatbot',
+        '/chat',
         '/profile',
         '/settings',
         '/todos',
