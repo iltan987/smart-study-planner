@@ -1,10 +1,11 @@
 import { AppLayout } from '@/components/AppLayout';
 import { SessionProvider } from 'next-auth/react';
+import type { ReactNode } from 'react';
 
 export default async function ProtectedLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <SessionProvider>
