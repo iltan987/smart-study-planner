@@ -23,8 +23,20 @@ import type { Dispatch, FC, ReactNode, SetStateAction } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 
 interface SidebarChatContextType {
-  chats: { id: string; name: string }[];
-  setChats: Dispatch<SetStateAction<{ id: string; name: string }[]>>;
+  chats: {
+    id: string;
+    name: string;
+    createdAt: Date;
+  }[];
+  setChats: Dispatch<
+    SetStateAction<
+      {
+        id: string;
+        name: string;
+        createdAt: Date;
+      }[]
+    >
+  >;
 
   loading: boolean;
 
@@ -59,7 +71,13 @@ const SidebarChatContext = createContext<SidebarChatContextType | undefined>(
 export const SidebarChatProvider: FC<{
   children: ReactNode;
 }> = ({ children }) => {
-  const [chats, setChats] = useState<{ id: string; name: string }[]>([]);
+  const [chats, setChats] = useState<
+    {
+      id: string;
+      name: string;
+      createdAt: Date;
+    }[]
+  >([]);
   const [loading, setLoading] = useState<boolean>(true);
   useEffect(() => {
     const fetchChats = async () => {
@@ -83,7 +101,11 @@ export const SidebarChatProvider: FC<{
   const handleCreateChat = async (chatName?: string) => {
     const result = await createChat(chatName);
     if (result.success) {
-      const newChat = { id: result.data.chatId, name: result.data.name };
+      const newChat = {
+        id: result.data.chatId,
+        name: result.data.name,
+        createdAt: result.data.createdAt,
+      };
       setChats((prev) => [...prev, newChat]);
       router.push(`/chat/${result.data.chatId}`);
     } else {

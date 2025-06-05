@@ -18,12 +18,14 @@ export function Chats() {
       </div>
     );
   }
-  return channels.map((channel) => (
-    <ChatChannelMenuItem
-      key={channel.id}
-      channelId={channel.id}
-      title={channel.name}
-      href={`/chat/${channel.id}`}
-    />
-  ));
+  return channels
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .map((channel) => (
+      <ChatChannelMenuItem
+        key={channel.id}
+        channelId={channel.id}
+        title={channel.name}
+        href={`/chat/${channel.id}`}
+      />
+    ));
 }
