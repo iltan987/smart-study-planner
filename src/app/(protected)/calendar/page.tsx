@@ -296,6 +296,8 @@ export default function CalendarPage() {
   };
 
   const handleDeleteInitiate = (eventId: string) => {
+    setEditingEvent(null);
+    setSelectedCellDate(null);
     setDeletingEventId(eventId);
     setDeleteDialogOpen(true);
   };
@@ -361,12 +363,14 @@ export default function CalendarPage() {
   };
 
   const handleCalendarCellClick = (date: Date) => {
+    setDeletingEventId(null); // Clear any previous delete state
     setEditingEvent(null); // Ensure we are in "add" mode
     setSelectedCellDate(date);
     setIsEventFormOpen(true);
   };
 
   const handleEventItemEdit = (event: ClientCalendarEvent) => {
+    setDeletingEventId(null); // Clear any previous delete state
     setSelectedCellDate(null);
     setEditingEvent(event); // Ensure we are in "edit" mode
     setIsEventFormOpen(true);
