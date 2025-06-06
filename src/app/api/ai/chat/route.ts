@@ -15,8 +15,6 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { z } from 'zod';
 import { toolCreateCalendarEvent } from './tools/calendar/create-calendar-event';
 import { toolGetCalendarEvents } from './tools/calendar/get-calendar-events';
-import { toolGetNotes } from './tools/notes/get-notes';
-import { toolSaveNote } from './tools/notes/save-note';
 import { toolCreateTodo } from './tools/todo/create-todo';
 import { toolGetTodos } from './tools/todo/get-todos';
 import { toolGetUserProfileDetails } from './tools/user-profile/get-user-profile';
@@ -295,28 +293,6 @@ Your primary directive is to be an exceptionally helpful, accurate, user-friendl
         parameters: toolGetCalendarEvents.parameters,
         execute: (args) =>
           toolGetCalendarEvents.execute({
-            userId: session.user.id,
-            userTimezone: timezone || 'UTC',
-            currentServerDate: currentDate,
-            args,
-          }),
-      }),
-      save_user_note: tool({
-        description: toolSaveNote.description,
-        parameters: toolSaveNote.parameters,
-        execute: (args) =>
-          toolSaveNote.execute({
-            userId: session.user.id,
-            userTimezone: timezone || 'UTC',
-            currentServerDate: currentDate,
-            args,
-          }),
-      }),
-      get_user_notes: tool({
-        description: toolGetNotes.description,
-        parameters: toolGetNotes.parameters,
-        execute: (args) =>
-          toolGetNotes.execute({
             userId: session.user.id,
             userTimezone: timezone || 'UTC',
             currentServerDate: currentDate,
