@@ -44,13 +44,15 @@ export const createCalendarEventInputSchema = z
     end: z.date(),
   })
   .refine(
-    (data) =>
-      data.start.getFullYear() === data.end.getFullYear() &&
-      data.start.getMonth() === data.end.getMonth() &&
-      data.start.getDate() === data.end.getDate(),
+    (data) => {
+      const start = data.start;
+      const end = data.end;
+      const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
+      return end.getTime() - start.getTime() <= oneDayInMilliseconds;
+    },
     {
-      message: 'Start and end times must be on the same day.',
-      path: ['end'],
+      message:
+        'The difference between start and end must be no more than 24 hours.',
     }
   )
   .refine(

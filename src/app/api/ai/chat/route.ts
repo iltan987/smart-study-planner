@@ -123,13 +123,15 @@ export async function POST(req: Request) {
         *   "Find todos related to 'final project'."
 
 2.  **Calendar Management:**
-    *   **Create Calendar Events:** When **${name}** wants to schedule something (classes, study sessions, appointments):
-        *   Gather or clarify: \`title\` (required, string), \`startTime\` (required, AiDateTimeInput object), \`endTime\` (optional, AiDateTimeInput object), \`durationInMinutes\` (optional, integer - use if \`endTime\` isn't specified, or suggest a default like 60 mins if neither is provided and ask for confirmation).
-        *   Be conversational: "Okay, let's get that on your calendar. What's the event title and when would it start?"
-    *   **Retrieve Calendar Events:** Help **${name}** check their schedule. Examples:
-        *   "What's on my calendar this afternoon?"
-        *   "Do I have any classes on Friday?"
-        *   "Search for 'doctor's appointment' in my calendar."
+    *   **Create Calendar Events:** For scheduling classes, study sessions, appointments, etc. **All calendar events you create must occur on a single calendar day.**
+        *   Gather or clarify:
+            *   \`title\` (required, string): Name of the event.
+            *   \`startTime\` (required, AiDateTimeInput object): The specific start date and time of the event. If the user only provides a date (e.g., "Meeting on July 20th"), interpret this as the date for the event, and you should either ask for a specific start time or, if the context implies an all-day marker or a default time slot is appropriate, your tool call should reflect that (e.g., by setting \`hours:0, minutes:0\` in the \`set\` part of \`startTime\` for an all-day marker, or a default like \`hours:9, minutes:0\` if no time is given and you need to assume one).
+            *   \`endTime\` (optional, AiDateTimeInput object): The end date and time of the event. **It must be on the same calendar day as the \`startTime\`.**
+            *   \`durationInMinutes\` (optional, integer): Use if \`endTime\` isn't specified. If neither \`endTime\` nor \`durationInMinutes\` is provided for a \`startTime\` that includes a specific time, a default duration (e.g., 60 minutes) will be assumed by the system. If \`startTime\` implies an all-day event (no specific time given by user), and no end time/duration is specified, the event will be marked as all-day for the specified date.
+        *   Be conversational: "Okay, **${name}**, let's get that on your calendar. What's the event, and for which date and time would that be?" If they only give a date, you can ask, "Got it, for [Date]. Is there a specific time for this, or is it an all-day event?"
+    *   **Retrieve Calendar Events:** Help **${name}** check their schedule. **You can retrieve events for a specific day or a date range up to 7 days.**
+        *   Examples: "What's on my calendar this afternoon?", "Do I have any classes on Friday?", "Show me my events for next week."
 
 3.  **Information & Profile Interaction:**
     *   Answer questions about **${name}**'s existing todos and calendar events by effectively using your tools.
@@ -204,10 +206,10 @@ You have the following tools. **Always use these tools for relevant user request
     *   Parameters: \`title\` (string, required), \`description\` (string, optional), \`dateTime\` (AiDateTimeInput object, optional, for the due date/time), \`duration\` (integer minutes, optional), \`priority\` (enum: LOW, MEDIUM, HIGH, optional), \`category\` (enum: STUDY, ASSIGNMENT, EXAM, WORK, GYM, OTHER, optional).
 2.  **\`get_todos\`**: Retrieves **${name}**'s tasks.
     *   Parameters: \`dateTime\` (AiDateTimeInput object, optional, for a specific date like "today" or "next Tuesday"), \`dateRangeStart\` (AiDateTimeInput object, optional), \`dateRangeEnd\` (AiDateTimeInput object, optional), \`status\` (enum: PENDING, COMPLETED, MISSED, optional), \`priority\` (enum, optional), \`category\` (enum, optional), \`limit\` (integer, default 10, optional), \`query\` (string, search term, optional).
-3.  **\`create_calendar_event\`**: Creates a new calendar event for **${name}**.
-    *   Parameters: \`title\` (string, required), \`startTime\` (AiDateTimeInput object, required), \`endTime\` (AiDateTimeInput object, optional), \`durationInMinutes\` (integer, optional).
-4.  **\`get_calendar_events\`**: Retrieves **${name}**'s calendar events.
-    *   Parameters: \`dateTime\` (AiDateTimeInput object, optional), \`dateRangeStart\` (AiDateTimeInput object, optional), \`dateRangeEnd\` (AiDateTimeInput object, optional), \`query\` (string, optional), \`limit\` (integer, default 10, optional).
+3.  **\`create_calendar_event\`**: Creates a new calendar event for **${name}**. **Events must be on a single calendar day.**
+    *   Parameters: \`title\` (string, required), \`startTime\` (AiDateTimeInput object, required, this sets the date and start time of the event), \`endTime\` (AiDateTimeInput object, optional, must be on the same day as startTime), \`durationInMinutes\` (integer, optional, used if endTime is not specified).
+4.  **\`get_calendar_events\`**: Retrieves **${name}**'s calendar events. Can query a single day or a range up to 7 days.
+    *   Parameters: \`dateTime\` (AiDateTimeInput object, optional, for a single day), \`dateRangeStart\` (AiDateTimeInput object, optional), \`dateRangeEnd\` (AiDateTimeInput object, optional - if used with dateRangeStart, the period should not exceed 7 days), \`query\` (string, optional), \`limit\` (integer, default 10, optional).
 5.  **\`save_user_note\`**: Saves information about **${name}** or the conversation.
     *   Parameters: \`topic\` (string, required, e.g., "Study Habits", "Project Preferences", "User Goals"), \`content\` (string, required, the detailed note).
 6.  **\`get_user_notes\`**: Retrieves saved notes about **${name}**.
@@ -319,8 +321,6 @@ Your primary directive is to be an exceptionally helpful, accurate, user-friendl
         execute: () =>
           toolGetUserProfileDetails.execute({
             userId: session.user.id,
-            userTimezone: timezone || 'UTC',
-            currentServerDate: currentDate,
           }),
       }),
     },

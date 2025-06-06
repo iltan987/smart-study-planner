@@ -180,12 +180,12 @@ export const createCalendarEventToolSchema = z
       .min(1)
       .describe('The title of the calendar event. This is required.'),
     startTime: aiDateTimeInputSchema.describe(
-      'The start date and time of the event. This is required. Format as AiDateTimeInput object.'
+      'The specific start date and time of the event. This is required. If the user provides only a date, either clarify for a time or assume a default start time (e.g., beginning of the day for an all-day event, or 9 AM for a general marker) when constructing this object.'
     ),
     endTime: aiDateTimeInputSchema
       .optional()
       .describe(
-        "The end date and time of the event. Format as AiDateTimeInput object. If not provided, use 'durationInMinutes' or a default will be assumed."
+        "The end date and time of the event. Must be on the same calendar day as startTime. If omitted, 'durationInMinutes' can be used, or a default duration will apply."
       ),
     durationInMinutes: z
       .number()
@@ -193,10 +193,12 @@ export const createCalendarEventToolSchema = z
       .positive()
       .optional()
       .describe(
-        "The duration of the event in minutes (e.g., 60 for 1 hour). Can be used if 'endTime' is not specified."
+        "The duration of the event in minutes (e.g., 60 for 1 hour). Used if 'endTime' is not specified for a timed event."
       ),
   })
-  .describe("Creates a new event in the user's calendar.");
+  .describe(
+    "Creates a new event in the user's calendar. All events are for a single calendar day."
+  );
 export type CreateCalendarEventToolInput = z.infer<
   typeof createCalendarEventToolSchema
 >;
@@ -206,17 +208,17 @@ export const getCalendarEventsToolSchema = z
     dateTime: aiDateTimeInputSchema
       .optional()
       .describe(
-        'Specific date to retrieve events for. Format as AiDateTimeInput object.'
+        'Specific single date to retrieve events for. Format as AiDateTimeInput object.'
       ),
     dateRangeStart: aiDateTimeInputSchema
       .optional()
       .describe(
-        'The start of a date range for querying events. Format as AiDateTimeInput object.'
+        'The start of a date range for querying events (up to 7 days total). Format as AiDateTimeInput object.'
       ),
     dateRangeEnd: aiDateTimeInputSchema
       .optional()
       .describe(
-        'The end of a date range for querying events. Format as AiDateTimeInput object.'
+        'The end of a date range for querying events (up to 7 days total). Format as AiDateTimeInput object.'
       ),
     query: z
       .string()
@@ -233,7 +235,7 @@ export const getCalendarEventsToolSchema = z
       .describe('Maximum number of events to return. Defaults to 10.'),
   })
   .describe(
-    "Retrieves events from the user's calendar based on specified criteria. All parameters are optional. Use AiDateTimeInput for all date parameters."
+    "Retrieves events from the user's calendar. Can query for a single day or a range up to 7 days."
   );
 export type GetCalendarEventsToolInput = z.infer<
   typeof getCalendarEventsToolSchema
