@@ -30,12 +30,13 @@ export const navItems: NavigationItem[] = [
     title: 'Calendar',
     icon: CalendarDays,
   },
-  {
-    href: '/chatbot',
-    title: 'AI Chat',
-    icon: Bot,
-  },
 ];
+
+export const navChatbot: NavigationItem = {
+  href: '/chat',
+  title: 'AI Chat',
+  icon: Bot,
+};
 
 export const bottomNavItems: NavigationItem[] = [
   {

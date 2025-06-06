@@ -44,7 +44,14 @@ export const userProfileSchema = z.object({
     .min(2, { message: 'Name must be at least 2 characters long.' })
     .max(100, { message: 'Name must be less than 100 characters.' })
     .refine((val) => val.trim().length > 0, { message: 'Name is required.' }),
-  birthDate: yearMonthDate.optional(),
+  birthDate: yearMonthDate.optional().refine(
+    (val) => {
+      if (!val) return true;
+      const d = new Date(Date.UTC(val.year, val.monthIndex, val.date));
+      return d <= new Date();
+    },
+    { message: 'Birth date cannot be in the future.' }
+  ),
   gender: z.nativeEnum(Gender).nullable(),
   nationality: z.string().max(100, 'Nationality is too long.').nullable(),
   languages: z
@@ -103,7 +110,18 @@ export const updateUserProfileFormSchema = z.object({
     .refine((val) => val.trim().length > 0, { message: 'Name is required.' }),
   birthDate: z
     .string()
-    .date('Birth date must be a valid date.')
+    .refine(
+      (val) => {
+        if (val === '') return true;
+        const date = new Date(val);
+        if (isNaN(date.getTime())) return false;
+        // Prevent future dates
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return date <= today;
+      },
+      { message: 'Birth date must not be in the future.' }
+    )
     .or(z.literal('')),
   gender: z.nativeEnum(Gender).or(z.literal('')),
   nationality: z.string().max(100, 'Nationality is too long.'),

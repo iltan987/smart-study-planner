@@ -267,7 +267,7 @@ export default function SettingsPageContent({
   };
 
   return (
-    <div className="container mx-auto py-8 max-w-4xl">
+    <div className="container mx-auto py-8 max-w-4xl md:py-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <Avatar className="h-16 w-16 rounded-lg">

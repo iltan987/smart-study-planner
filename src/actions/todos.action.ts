@@ -40,23 +40,68 @@ export async function getTodos(
       };
     }
 
-    const { date, start, end } = validationResult.data;
+    const { date, start, end, status, priority, category, query, limit } =
+      validationResult.data;
+
+    const where: Prisma.TodoWhereInput = {
+      userId,
+      AND: [
+        {
+          OR: [
+            {
+              date: date
+                ? new Date(Date.UTC(date.year, date.monthIndex, date.date))
+                : {
+                    gte: new Date(
+                      start.getUTCFullYear(),
+                      start.getUTCMonth(),
+                      start.getUTCDate()
+                    ),
+                    lte: new Date(
+                      end.getUTCFullYear(),
+                      end.getUTCMonth(),
+                      end.getUTCDate()
+                    ),
+                  },
+            },
+            {
+              dueTime: {
+                gte: start,
+                lte: end,
+              },
+            },
+          ],
+        },
+        ...(status ? [{ status }] : []),
+        ...(priority ? [{ priority }] : []),
+        ...(category ? [{ category }] : []),
+        ...(query
+          ? [
+              {
+                OR: [
+                  {
+                    title: {
+                      contains: query,
+                      mode: 'insensitive' as Prisma.QueryMode,
+                    },
+                  },
+                  {
+                    description: {
+                      contains: query,
+                      mode: 'insensitive' as Prisma.QueryMode,
+                    },
+                  },
+                ] as Prisma.TodoWhereInput[],
+              },
+            ]
+          : []),
+      ],
+    };
 
     const todos = await prisma.todo.findMany({
-      where: {
-        userId,
-        OR: [
-          {
-            date: new Date(Date.UTC(date.year, date.monthIndex, date.date)),
-          },
-          {
-            dueTime: {
-              gte: start,
-              lte: end,
-            },
-          },
-        ],
-      },
+      where,
+      ...(limit ? { take: limit } : {}),
+      orderBy: { createdAt: 'desc' },
     });
 
     return {

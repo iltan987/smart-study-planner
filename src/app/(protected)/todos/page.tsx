@@ -445,7 +445,7 @@ export default function TodosPage() {
 
   return (
     <>
-      <div className="w-full max-w-3xl mx-auto space-y-6">
+      <div className="w-full max-w-3xl mx-auto space-y-6 py-4 md:py-6">
         {/* Date Controls Section */}
         <Card>
           <CardHeader>

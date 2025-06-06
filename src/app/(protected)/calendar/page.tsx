@@ -9,16 +9,6 @@ import {
 import { CalendarLoadingComponent } from '@/components/calendar/CalendarLoadingComponent';
 import { EventFormDialog } from '@/components/calendar/EventFormDialog';
 import { WeeklyCalendarView } from '@/components/calendar/WeeklyCalendarView';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -27,6 +17,15 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ValidationException } from '@/errors/ValidationException';
 import type {
@@ -296,6 +295,8 @@ export default function CalendarPage() {
   };
 
   const handleDeleteInitiate = (eventId: string) => {
+    setEditingEvent(null);
+    setSelectedCellDate(null);
     setDeletingEventId(eventId);
     setDeleteDialogOpen(true);
   };
@@ -361,12 +362,14 @@ export default function CalendarPage() {
   };
 
   const handleCalendarCellClick = (date: Date) => {
+    setDeletingEventId(null); // Clear any previous delete state
     setEditingEvent(null); // Ensure we are in "add" mode
     setSelectedCellDate(date);
     setIsEventFormOpen(true);
   };
 
   const handleEventItemEdit = (event: ClientCalendarEvent) => {
+    setDeletingEventId(null); // Clear any previous delete state
     setSelectedCellDate(null);
     setEditingEvent(event); // Ensure we are in "edit" mode
     setIsEventFormOpen(true);
@@ -377,7 +380,7 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 md:gap-6 h-full">
+    <div className="flex flex-col gap-4 md:gap-6 h-full py-4 md:py-6">
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -451,16 +454,16 @@ export default function CalendarPage() {
       </Card>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog
+      <Dialog
         open={deleteDialogOpen}
         onOpenChange={(open) => {
           if (!open) setDeleteDialogOpen(false);
         }}
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Event</AlertDialogTitle>
-            <AlertDialogDescription>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Event</DialogTitle>
+            <DialogDescription>
               {deletingEvent ? (
                 <>
                   Are you sure you want to delete &quot;
@@ -470,16 +473,18 @@ export default function CalendarPage() {
               ) : (
                 'Are you sure you want to delete this event?'
               )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteDialogConfirm}>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button variant="destructive" onClick={handleDeleteDialogConfirm}>
               Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Event Form Dialog for Add/Edit */}
       <EventFormDialog

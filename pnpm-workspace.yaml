@@ -5,6 +5,7 @@ onlyBuiltDependencies:
   - '@vercel/speed-insights'
   - bcrypt
   - esbuild
+  - msw
   - prisma
   - sharp
   - unrs-resolver

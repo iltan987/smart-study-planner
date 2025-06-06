@@ -82,7 +82,7 @@ export default async function ProfilePage() {
     avatarTextColors[selectedBgColor] || defaultAvatarTextColor;
 
   return (
-    <div className="container mx-auto py-8 max-w-4xl">
+    <div className="container mx-auto py-8 max-w-4xl md:py-6">
       <div className="grid gap-6">
         {/* Profile Card */}
         <Card>
