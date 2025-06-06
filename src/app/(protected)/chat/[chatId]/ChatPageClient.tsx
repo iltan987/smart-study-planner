@@ -1,5 +1,9 @@
 'use client';
 
+import {
+  deleteMessage as deleteMessageAction,
+  updateRating,
+} from '@/actions/chat.action';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -8,8 +12,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import type { AssistantRating } from '@/types/assistant-rating';
 import type { Message } from '@ai-sdk/react';
@@ -26,9 +30,8 @@ import {
   Trash2,
   XOctagon,
 } from 'lucide-react';
-import Link from 'next/link';
 import type { ComponentRef, FormEvent } from 'react';
-import { useEffect, useRef, useState } from 'react'; // Ensure useState is imported
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { toast } from 'sonner';
@@ -38,6 +41,117 @@ interface ChatPageClientProps {
   initialMessages: Message[];
   initialRatings: Record<string, AssistantRating>;
 }
+
+interface ChatMessageItemProps {
+  message: Message;
+  isUser: boolean;
+  textContent: string;
+  rating: AssistantRating | null;
+  onCopy: (content: string) => void;
+  onDelete: (messageId: string) => void;
+  onRate: (messageId: string, rating: 'up' | 'down' | null) => void;
+}
+
+const ChatMessageItem = memo(
+  ({
+    message,
+    isUser,
+    textContent,
+    rating,
+    onCopy,
+    onDelete,
+    onRate,
+  }: ChatMessageItemProps) => {
+    return (
+      <div
+        className={cn('flex flex-col', isUser ? 'items-end' : 'items-start')}
+      >
+        <div
+          className={cn(
+            'group relative max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl p-3 rounded-xl shadow-md text-sm md:text-base',
+            isUser
+              ? 'bg-blue-600 text-white self-end rounded-br-none'
+              : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 self-start rounded-bl-none'
+          )}
+        >
+          <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {textContent}
+            </ReactMarkdown>
+          </div>
+          <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    'h-6 w-6 p-0.5 rounded-full focus-visible:ring-0 focus-visible:ring-offset-0',
+                    isUser
+                      ? 'text-white/70 hover:text-white hover:bg-white/20'
+                      : 'text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100 hover:bg-gray-200/70 dark:hover:bg-gray-700/70'
+                  )}
+                  aria-label="Message options"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => onCopy(textContent)}
+                  className="cursor-pointer"
+                >
+                  <Copy className="mr-2 h-3.5 w-3.5" />
+                  <span>Copy</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => onDelete(message.id)}
+                  className="cursor-pointer text-red-600 dark:text-red-400 hover:!text-red-600 dark:hover:!text-red-400 focus:!text-red-600 dark:focus:!text-red-400"
+                >
+                  <Trash2 className="mr-2 h-3.5 w-3.5" />
+                  <span>Delete</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+        {message.role === 'assistant' && (
+          <div className="mt-1.5 flex space-x-1 self-start">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                'h-7 w-7 rounded-full',
+                rating === 'up'
+                  ? 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-700/50'
+                  : 'text-gray-400 dark:text-gray-500 hover:text-green-500 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              )}
+              onClick={() => onRate(message.id, 'up')}
+              aria-label="Rate positive"
+            >
+              <ThumbsUp className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                'h-7 w-7 rounded-full',
+                rating === 'down'
+                  ? 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-700/50'
+                  : 'text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              )}
+              onClick={() => onRate(message.id, 'down')}
+              aria-label="Rate negative"
+            >
+              <ThumbsDown className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  }
+);
+ChatMessageItem.displayName = 'ChatMessageItem';
 
 export default function ChatPageClient({
   chatId,
@@ -87,13 +201,13 @@ export default function ChatPageClient({
   const [ratedMessages, setRatedMessages] = useState(initialRatings);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollAreaRef = useRef<ComponentRef<typeof ScrollArea>>(null);
   const [isUserAtBottom, setIsUserAtBottom] = useState(true);
   const [forceScrollToBottom, setForceScrollToBottom] = useState(true);
 
   // Function to handle copying message content
-  const handleCopyMessage = async (content: string) => {
+  const handleCopyMessage = useCallback(async (content: string) => {
     if (!content) return;
     try {
       await navigator.clipboard.writeText(content);
@@ -103,13 +217,28 @@ export default function ChatPageClient({
       console.error('Failed to copy message:', err);
       toast.error('Failed to copy message');
     }
-  };
+  }, []);
 
-  // Function to handle deleting a message
-  const handleDeleteMessage = (messageId: string) => {
-    setMessages(messages.filter((msg) => msg.id !== messageId));
-    toast.success('Message deleted');
-  };
+  const handleDeleteMessage = useCallback(
+    async (messageId: string) => {
+      const originalMessages = [...messages];
+      setMessages((prevMessages) =>
+        prevMessages.filter((msg) => msg.id !== messageId)
+      );
+      toast.info('Deleting message...');
+
+      const result = await deleteMessageAction(chatId, messageId);
+
+      if (result.success) {
+        toast.success('Message deleted successfully');
+      } else {
+        setMessages(originalMessages);
+        toast.error(result.error || 'Failed to delete message');
+        console.error('Failed to delete message:', result.error);
+      }
+    },
+    [chatId, messages, setMessages]
+  );
 
   useEffect(() => {
     const viewportElement = scrollAreaRef.current?.querySelector(
@@ -119,7 +248,7 @@ export default function ChatPageClient({
 
     const handleScroll = () => {
       const { scrollHeight, scrollTop, clientHeight } = viewportElement;
-      const atBottom = scrollHeight - scrollTop - clientHeight < 30;
+      const atBottom = scrollHeight - scrollTop - clientHeight < 50;
       setIsUserAtBottom(atBottom);
     };
 
@@ -135,9 +264,11 @@ export default function ChatPageClient({
     if (messagesEndRef.current) {
       if (forceScrollToBottom) {
         messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-        setForceScrollToBottom(false); // Reset flag
+        setForceScrollToBottom(false);
       } else if (isUserAtBottom) {
-        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        messagesEndRef.current.scrollIntoView({
+          behavior: status === 'streaming' ? 'auto' : 'smooth',
+        });
       }
     }
   }, [messages, status, isUserAtBottom, forceScrollToBottom]);
@@ -147,15 +278,40 @@ export default function ChatPageClient({
     setForceScrollToBottom(true);
   }, [chatId]);
 
-  const handleRating = (messageId: string, rating: 'up' | 'down') => {
-    setRatedMessages((prev) => ({
-      ...prev,
-      [messageId]: prev[messageId] === rating ? null : rating, // Toggle or set new rating
-    }));
-    // In a real application, you would send this feedback to your backend:
-    // sendFeedbackToBackend(messageId, rating);
-    console.log(`Rated message ${messageId} as ${rating}`);
-  };
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto'; // Reset height
+      const scrollHeight = inputRef.current.scrollHeight;
+      // Max height for textarea is 200px (from max-h-[200px] class)
+      // min-h-[44px] corresponds to roughly one line.
+      // We set height directly to scrollHeight, capped by CSS max-height.
+      inputRef.current.style.height = `${scrollHeight}px`;
+    }
+  }, [input]);
+
+  const handleRating = useCallback(
+    async (messageId: string, rating: 'up' | 'down' | null) => {
+      const currentRating = ratedMessages[messageId];
+      const newRating = currentRating === rating ? null : rating;
+
+      setRatedMessages((prev) => ({
+        ...prev,
+        [messageId]: newRating,
+      }));
+
+      const result = await updateRating(chatId, messageId, newRating);
+      if (!result?.success) {
+        toast.error('Failed to update rating');
+        setRatedMessages((prev) => ({
+          ...prev,
+          [messageId]: currentRating,
+        }));
+        return;
+      }
+      console.log(`Rated message ${messageId} as ${newRating}`);
+    },
+    [chatId, ratedMessages]
+  );
 
   // Wrapped submit handler
   const handleLocalSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -166,10 +322,10 @@ export default function ChatPageClient({
     }
     if (!input.trim()) return;
 
-    originalUseChatSubmit(e); // Call the original submit handler from useChat
+    originalUseChatSubmit(e);
 
-    setForceScrollToBottom(true); // Force scroll for user's own message
-    setIsUserAtBottom(true); // Assume user wants to be at bottom after sending
+    setForceScrollToBottom(true);
+    setIsUserAtBottom(true);
   };
 
   return (
@@ -179,133 +335,28 @@ export default function ChatPageClient({
         <ScrollArea ref={scrollAreaRef} className="h-full p-4">
           <div className="space-y-4 mx-auto">
             {messages.map((m) => {
-              const textContent = m.parts.some((part) => part.type === 'text')
+              let textContent = m.parts.some((part) => part.type === 'text')
                 ? m.parts
                     .filter((part) => part.type === 'text')
                     .map((part) => (part as { text: string }).text)
                     .join('')
                 : m.content;
 
-              const sourceParts =
-                m.role === 'assistant' && m.parts
-                  ? (m.parts.filter((part) => part.type === 'source') as {
-                      source: { id: string; url: string; title?: string };
-                    }[])
-                  : undefined;
+              if (m.role === 'user') {
+                textContent = textContent.replace(/\n/g, '\n\n');
+              }
 
               return (
-                <div
+                <ChatMessageItem
                   key={m.id}
-                  className={cn(
-                    'flex flex-col',
-                    m.role === 'user' ? 'items-end' : 'items-start'
-                  )}
-                >
-                  <div
-                    className={cn(
-                      'group relative max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl p-3 rounded-xl shadow-md text-sm md:text-base',
-                      m.role === 'user'
-                        ? 'bg-blue-600 text-white self-end rounded-br-none'
-                        : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 self-start rounded-bl-none'
-                    )}
-                  >
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {textContent}
-                      </ReactMarkdown>
-                    </div>
-                    {sourceParts && sourceParts.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-gray-300 dark:border-gray-600">
-                        <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
-                          Sources:
-                        </h4>
-                        <div className="flex flex-wrap gap-1.5">
-                          {sourceParts.map((part) => (
-                            <Link
-                              key={`source-${part.source.id}`}
-                              href={part.source.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-1.5 py-0.5 rounded-md text-blue-600 dark:text-blue-400 hover:underline"
-                              title={part.source.url}
-                            >
-                              {part.source.title ??
-                                new URL(part.source.url).hostname}
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {/* Copy Message Dropdown */}
-                    <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className={cn(
-                              'h-6 w-6 p-0.5 rounded-full focus-visible:ring-0 focus-visible:ring-offset-0', // Adjusted focus style for minimal impact
-                              m.role === 'user'
-                                ? 'text-white/70 hover:text-white hover:bg-white/20'
-                                : 'text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100 hover:bg-gray-200/70 dark:hover:bg-gray-700/70'
-                            )}
-                            aria-label="Message options"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => handleCopyMessage(textContent)}
-                            className="cursor-pointer"
-                          >
-                            <Copy className="mr-2 h-3.5 w-3.5" />
-                            <span>Copy</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDeleteMessage(m.id)}
-                            className="cursor-pointer text-red-600 dark:text-red-400 hover:!text-red-600 dark:hover:!text-red-400 focus:!text-red-600 dark:focus:!text-red-400"
-                          >
-                            <Trash2 className="mr-2 h-3.5 w-3.5" />
-                            <span>Delete</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                  {m.role === 'assistant' && (
-                    <div className="mt-1.5 flex space-x-1 self-start">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                          'h-7 w-7 rounded-full',
-                          ratedMessages[m.id] === 'up'
-                            ? 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-700/50'
-                            : 'text-gray-400 dark:text-gray-500 hover:text-green-500 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                        )}
-                        onClick={() => handleRating(m.id, 'up')}
-                        aria-label="Rate positive"
-                      >
-                        <ThumbsUp className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                          'h-7 w-7 rounded-full',
-                          ratedMessages[m.id] === 'down'
-                            ? 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-700/50'
-                            : 'text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                        )}
-                        onClick={() => handleRating(m.id, 'down')}
-                        aria-label="Rate negative"
-                      >
-                        <ThumbsDown className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                  message={m}
+                  isUser={m.role === 'user'}
+                  textContent={textContent}
+                  rating={ratedMessages[m.id] || null}
+                  onCopy={handleCopyMessage}
+                  onDelete={handleDeleteMessage}
+                  onRate={handleRating}
+                />
               );
             })}
           </div>
@@ -338,21 +389,21 @@ export default function ChatPageClient({
       {/* Input Section - Fixed at Bottom */}
       <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 sm:p-4 shadow-top-light dark:shadow-top-dark">
         <form
-          className="flex items-center space-x-2 sm:space-x-3"
+          className="flex items-end space-x-2 sm:space-x-3"
           onSubmit={handleLocalSubmit}
         >
-          <Input
+          <Textarea
             ref={inputRef}
-            type="text"
             placeholder={
               error ? 'Retry or type a new message...' : 'Send a message...'
             }
             value={input}
             onChange={handleInputChange}
-            disabled={status === 'submitted' || status === 'streaming'} // Disabled during submission/streaming
-            className="flex-grow text-sm md:text-base rounded-full px-4 py-3 focus-visible:ring-1 focus-visible:ring-blue-500 dark:bg-gray-700 dark:text-gray-50 dark:placeholder-gray-400"
+            disabled={status === 'submitted' || status === 'streaming'}
+            className="flex-grow text-sm md:text-base rounded-lg px-4 py-2.5 min-h-[44px] max-h-[100px] resize-none overflow-y-hidden focus-visible:ring-1 focus-visible:ring-blue-500 dark:bg-gray-700 dark:text-gray-50 dark:placeholder-gray-400"
             autoFocus
             aria-label="Chat input"
+            rows={1}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
