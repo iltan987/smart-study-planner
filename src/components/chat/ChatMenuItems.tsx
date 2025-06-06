@@ -1,12 +1,12 @@
 'use client';
 
 import { useSidebarChat } from '@/hooks/useSidebarChat';
-import Link from 'next/link';
+import { Button } from '../ui/button';
 import { ChatChannelMenuItem } from './ChatMenuItem';
 import { ChatChannelsSkeleton } from './ChatMenuItemSkeleton';
 
 export function Chats() {
-  const { chats: channels, loading } = useSidebarChat();
+  const { chats: channels, loading, handleCreateChat } = useSidebarChat();
 
   if (loading) {
     return <ChatChannelsSkeleton />;
@@ -16,10 +16,14 @@ export function Chats() {
     return (
       <div className="px-3 py-2 text-muted-foreground text-sm">
         You have no channels yet.{' '}
-        <Link href="/chat" className="text-primary hover:underline">
-          Create one
-        </Link>{' '}
-        to start chatting!
+        <Button
+          onClick={() => handleCreateChat()}
+          variant="link"
+          size="sm"
+          className="p-0"
+        >
+          Create one!
+        </Button>
       </div>
     );
   }
