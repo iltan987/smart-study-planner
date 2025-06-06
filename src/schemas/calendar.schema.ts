@@ -112,6 +112,8 @@ export const getCalendarEventsInputSchema = z
   .object({
     start: z.date(),
     end: z.date(),
+    query: z.string().optional(),
+    limit: z.number().int().positive().max(100).optional(),
   })
   .refine(
     (data) => {

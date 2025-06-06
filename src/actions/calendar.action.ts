@@ -40,7 +40,7 @@ export async function getCalendarEvents(
       };
     }
 
-    const { start, end } = validationResult.data;
+    const { start, end, query, limit } = validationResult.data;
 
     const events = await prisma.calendarEvent.findMany({
       where: {
@@ -53,10 +53,19 @@ export async function getCalendarEvents(
           gte: start,
           lte: end,
         },
+        ...(query
+          ? {
+              title: {
+                contains: query,
+                mode: 'insensitive',
+              },
+            }
+          : {}),
       },
       orderBy: {
         start: 'asc',
       },
+      ...(limit ? { take: limit } : {}),
     });
 
     return {
