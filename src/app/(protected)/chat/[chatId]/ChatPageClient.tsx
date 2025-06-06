@@ -210,7 +210,7 @@ export default function ChatPageClient({
   const handleCopyMessage = useCallback(async (content: string) => {
     if (!content) return;
     try {
-      await navigator.clipboard.writeText(content);
+      await navigator.clipboard.writeText(content.replace(/\n{2,}/g, '\n'));
       console.log('Message copied to clipboard');
       toast.success('Message copied to clipboard');
     } catch (err) {
