@@ -72,25 +72,14 @@ export type UpdateTodoStatusOnlyInput = z.infer<
   typeof updateTodoStatusOnlySchema
 >;
 
-export const getTodosInputSchema = z
-  .object({
-    date: yearMonthDate,
-    start: z.date(),
-    end: z.date(),
-    status: z.nativeEnum(TodoStatus).optional(),
-    priority: z.nativeEnum(TodoPriority).optional(),
-    category: z.nativeEnum(TodoCategory).optional(),
-    query: z.string().max(255).optional(),
-    limit: z.number().int().positive().max(100).optional(),
-  })
-  .refine(
-    (data) => {
-      const start = data.start.getTime();
-      const end = data.end.getTime();
-      return end - start <= 24 * 60 * 60 * 1000;
-    },
-    {
-      message: 'Time range must be less than 24 hours.',
-    }
-  );
+export const getTodosInputSchema = z.object({
+  date: yearMonthDate.optional(),
+  start: z.date(),
+  end: z.date(),
+  status: z.nativeEnum(TodoStatus).optional(),
+  priority: z.nativeEnum(TodoPriority).optional(),
+  category: z.nativeEnum(TodoCategory).optional(),
+  query: z.string().max(255).optional(),
+  limit: z.number().int().positive().max(100).optional(),
+});
 export type GetTodosInputSchema = z.infer<typeof getTodosInputSchema>;

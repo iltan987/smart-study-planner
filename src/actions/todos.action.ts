@@ -49,7 +49,20 @@ export async function getTodos(
         {
           OR: [
             {
-              date: new Date(Date.UTC(date.year, date.monthIndex, date.date)),
+              date: date
+                ? new Date(Date.UTC(date.year, date.monthIndex, date.date))
+                : {
+                    gte: new Date(
+                      start.getUTCFullYear(),
+                      start.getUTCMonth(),
+                      start.getUTCDate()
+                    ),
+                    lte: new Date(
+                      end.getUTCFullYear(),
+                      end.getUTCMonth(),
+                      end.getUTCDate()
+                    ),
+                  },
             },
             {
               dueTime: {
