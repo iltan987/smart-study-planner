@@ -77,6 +77,11 @@ export const getTodosInputSchema = z
     date: yearMonthDate,
     start: z.date(),
     end: z.date(),
+    status: z.nativeEnum(TodoStatus).optional(),
+    priority: z.nativeEnum(TodoPriority).optional(),
+    category: z.nativeEnum(TodoCategory).optional(),
+    query: z.string().max(255).optional(),
+    limit: z.number().int().positive().max(100).optional(),
   })
   .refine(
     (data) => {
