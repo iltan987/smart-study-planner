@@ -148,17 +148,19 @@ export async function updateMessageRatingInRedis(
   const messageDataKey = `${MESSAGE_DATA_HASH_PREFIX}${messageId}:data`;
   const chatRatingsKey = `${CHAT_RATINGS_HASH_PREFIX}${chatId}`;
 
-  const jsonString = await redis.hGet(messageDataKey, 'jsonData');
+  const messageRole = await redis.hGet(messageDataKey, 'role');
 
-  if (!jsonString) {
+  if (!messageRole) {
     console.warn(`Message ${messageId} not found in Redis for rating update.`);
     return false;
   }
 
   try {
-    const message = JSON.parse(jsonString) as Message;
-
-    if (message.role !== 'assistant') {
+    if (newRating === null) {
+      await redis.hDel(chatRatingsKey, messageId);
+      return true;
+    }
+    if (messageRole !== 'assistant') {
       console.warn(`Attempted to rate non-assistant message ${messageId}.`);
       return false;
     }
@@ -167,6 +169,34 @@ export async function updateMessageRatingInRedis(
     return true;
   } catch (error) {
     console.error(`Error updating rating for message ${messageId}:`, error);
+    return false;
+  }
+}
+
+export async function deleteMessageFromRedis(
+  chatId: string,
+  messageId: string
+): Promise<boolean> {
+  const chatMessageIdsKey = `${CHAT_MESSAGES_IDS_LIST_PREFIX}${chatId}:message_ids`;
+  const messageDataKey = `${MESSAGE_DATA_HASH_PREFIX}${messageId}:data`;
+  const chatRatingsKey = `${CHAT_RATINGS_HASH_PREFIX}${chatId}`;
+
+  try {
+    const multi = redis.multi();
+    // Remove the message ID from the list of message IDs for the chat
+    multi.lRem(chatMessageIdsKey, 0, messageId);
+    // Delete the actual message data
+    multi.del(messageDataKey);
+    // Delete any rating associated with this message
+    multi.hDel(chatRatingsKey, messageId);
+
+    await multi.exec();
+    return true;
+  } catch (error) {
+    console.error(
+      `Error deleting message ${messageId} from chat ${chatId} in Redis:`,
+      error
+    );
     return false;
   }
 }
