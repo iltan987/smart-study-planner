@@ -1,7 +1,12 @@
 'use server';
 
 import { auth } from '@/lib/auth';
+import type { AssistantRating } from '@/types/assistant-rating';
 import type { Result } from '@/types/response';
+import {
+  deleteMessageFromRedis,
+  updateMessageRatingInRedis,
+} from '@/utils/chat-messages.util';
 import {
   createRedisChat,
   deleteRedisChat,
@@ -55,5 +60,40 @@ export async function deleteChat(chatId: string): Promise<Result> {
     return { success: false, error: 'Unauthorized' };
   }
   await deleteRedisChat(chatId, session.user.id);
+  return { success: true };
+}
+
+export async function updateRating(
+  chatId: string,
+  messageId: string,
+  rating: AssistantRating
+): Promise<Result> {
+  const session = await auth();
+  if (!session) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const success = await updateMessageRatingInRedis(chatId, messageId, rating);
+  if (!success) {
+    return { success: false, error: 'Failed to update rating' };
+  }
+
+  return { success: true };
+}
+
+export async function deleteMessage(
+  chatId: string,
+  messageId: string
+): Promise<Result> {
+  const session = await auth();
+  if (!session) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const success = await deleteMessageFromRedis(chatId, messageId);
+  if (!success) {
+    return { success: false, error: 'Failed to delete message' };
+  }
+
   return { success: true };
 }
