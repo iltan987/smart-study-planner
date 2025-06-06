@@ -29,7 +29,15 @@ export const toolCreateTodo = {
       `TOOL CALL: create_todo for user ${userId} with args:`,
       JSON.stringify(args, null, 2)
     );
-    const { title, description, dateTime, duration, priority, category } = args;
+    const {
+      title,
+      description,
+      dateTime,
+      duration,
+      priority,
+      category,
+      status,
+    } = args;
 
     let processedDateInfo: ProcessedAiDate | null = null;
     if (dateTime) {
@@ -44,10 +52,11 @@ export const toolCreateTodo = {
 
     const prismaTodoInput: PrismaCreateTodoInput = {
       title,
-      description: description || undefined,
-      duration: duration || undefined,
-      priority: priority || undefined,
-      category: category || undefined,
+      ...(description && { description }),
+      ...(duration && { duration }),
+      ...(priority && { priority }),
+      ...(category && { category }),
+      ...(status && { status }),
       ...(processedDateInfo &&
         processedDateInfo.isAllDay && {
           date: {

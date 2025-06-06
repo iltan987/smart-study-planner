@@ -115,6 +115,12 @@ export const createTodoToolSchema = z
       .describe(
         `Category of the todo. Default is STUDY. Available: ${Object.values(TodoCategory).join(', ')}`
       ),
+    status: z
+      .nativeEnum(TodoStatus)
+      .optional()
+      .describe(
+        `Status of the todo. Default is PENDING. Available: ${Object.values(TodoStatus).join(', ')}`
+      ),
   })
   .describe("Creates a new todo item in the user's planner.");
 export type CreateTodoToolInput = z.infer<typeof createTodoToolSchema>;
