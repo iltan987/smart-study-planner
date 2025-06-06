@@ -1,6 +1,7 @@
 'use client';
 
 import { useSidebarChat } from '@/hooks/useSidebarChat';
+import Link from 'next/link';
 import { ChatChannelMenuItem } from './ChatMenuItem';
 import { ChatChannelsSkeleton } from './ChatMenuItemSkeleton';
 
@@ -14,7 +15,11 @@ export function Chats() {
   if (channels.length === 0) {
     return (
       <div className="px-3 py-2 text-muted-foreground text-sm">
-        You have no channels yet.
+        You have no channels yet.{' '}
+        <Link href="/chat" className="text-primary hover:underline">
+          Create one
+        </Link>{' '}
+        to start chatting!
       </div>
     );
   }
