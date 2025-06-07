@@ -31,18 +31,28 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent className="flex flex-col gap-3 pt-4">
             <Button asChild size="lg" className="w-full">
-              <Link href="/todos?action=add">
+              <Link
+                href={{
+                  pathname: '/todos',
+                  query: { action: 'add' },
+                }}
+              >
                 <PlusCircle className="mr-2 h-5 w-5" /> Add New Todo
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="w-full">
-              <Link href="/calendar?action=add">
+              <Link
+                href={{
+                  pathname: '/calendar',
+                  query: { action: 'add' },
+                }}
+              >
                 <CalendarDays className="mr-2 h-5 w-5" /> Add New Event
               </Link>
             </Button>
             <Button asChild variant="secondary" size="lg" className="w-full">
-              <Link href="/chat">
-                <MessageSquare className="mr-2 h-5 w-5" /> Chat with AI Pal
+              <Link href="/chat" prefetch={false}>
+                <MessageSquare className="mr-2 h-5 w-5" /> Chat with Aida
               </Link>
             </Button>
           </CardContent>
