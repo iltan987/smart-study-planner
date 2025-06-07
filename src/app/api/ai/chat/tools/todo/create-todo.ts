@@ -1,29 +1,22 @@
 import { createTodo as serverActionCreateTodo } from '@/actions/todos.action';
-import {
-  createTodoToolSchema,
-  type CreateTodoToolInput,
-} from '@/schemas/ai-tools.schema';
+import type { CreateTodoToolInput } from '@/schemas/ai-tools.schema';
+import { createTodoParamsSchema } from '@/schemas/ai-tools.schema';
 import type { CreateTodoInputSchema as PrismaCreateTodoInput } from '@/schemas/todos.schema';
-import {
-  processAiDateTimeInput,
-  type ProcessedAiDate,
-} from '@/utils/date.util';
-import { format } from 'date-fns';
-import { formatInTimeZone } from 'date-fns-tz';
+import { format, parseISO } from 'date-fns';
+import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 
 export const toolCreateTodo = {
-  description: 'Creates a new todo item for the user in their planner.',
-  parameters: createTodoToolSchema,
+  description:
+    'Use this tool to create a new task, reminder, or to-do item for the user. It is suitable for tasks that have a deadline or need to be done on a specific day.',
+  parameters: createTodoParamsSchema,
   execute: async ({
     userId,
-    userTimezone,
-    currentServerDate,
     args,
+    userTimezone,
   }: {
     userId: string;
-    userTimezone: string;
-    currentServerDate: Date;
     args: CreateTodoToolInput;
+    userTimezone: string;
   }): Promise<string> => {
     console.log(
       `TOOL CALL: create_todo for user ${userId} with args:`,
@@ -32,23 +25,33 @@ export const toolCreateTodo = {
     const {
       title,
       description,
-      dateTime,
+      date: dateString,
+      dueTime: dueTimeString,
       duration,
       priority,
       category,
       status,
     } = args;
 
-    let processedDateInfo: ProcessedAiDate | null = null;
-    if (dateTime) {
-      processedDateInfo = processAiDateTimeInput(
-        dateTime,
-        userTimezone,
-        currentServerDate
-      );
-      if (!processedDateInfo)
-        return `Error: Could not understand the provided date/time for the todo. Please try a clearer format. Input was: ${JSON.stringify(dateTime)}`;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      return 'Error: The date must be in the format YYYY-MM-DD.';
     }
+
+    if (dueTimeString && !/^\d{2}:\d{2}$/.test(dueTimeString)) {
+      return 'Error: The due time must be in the format HH:mm (24-hour format).';
+    }
+
+    const parsedDate = parseISO(dateString);
+    if (isNaN(parsedDate.getTime())) {
+      return 'Error: The provided date is invalid.';
+    }
+
+    const finalDueTime =
+      dueTimeString &&
+      fromZonedTime(
+        parseISO(`${dateString}T${dueTimeString}:00`),
+        userTimezone
+      );
 
     const prismaTodoInput: PrismaCreateTodoInput = {
       title,
@@ -57,22 +60,16 @@ export const toolCreateTodo = {
       ...(priority && { priority }),
       ...(category && { category }),
       ...(status && { status }),
-      ...(processedDateInfo &&
-        processedDateInfo.isAllDay && {
-          date: {
-            year: processedDateInfo.userLocalTime.getFullYear(),
-            monthIndex: processedDateInfo.userLocalTime.getMonth(),
-            date: processedDateInfo.userLocalTime.getDate(),
-          },
-        }),
-      ...(processedDateInfo &&
-        !processedDateInfo.isAllDay && {
-          dueTime: processedDateInfo.finalDateUTC,
-        }),
+      ...(dueTimeString
+        ? finalDueTime && { dueTime: finalDueTime }
+        : {
+            date: {
+              year: parsedDate.getFullYear(),
+              monthIndex: parsedDate.getMonth(),
+              date: parsedDate.getDate(),
+            },
+          }),
     };
-
-    if (dateTime && !prismaTodoInput.date && !prismaTodoInput.dueTime)
-      return 'Error: A date or specific time is required if a date/time context was provided.';
 
     const result = await serverActionCreateTodo(prismaTodoInput);
     if (result.success) {

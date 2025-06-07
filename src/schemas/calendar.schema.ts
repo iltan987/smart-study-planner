@@ -59,10 +59,10 @@ export const createCalendarEventInputSchema = z
     (data) => {
       const start = data.start;
       const end = data.end;
-      return end > start;
+      return end >= start;
     },
     {
-      message: 'End time must be after start time on the same day.',
+      message: 'End time must be after or equal to start time.',
       path: ['end'],
     }
   );
