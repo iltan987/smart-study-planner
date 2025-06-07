@@ -41,6 +41,7 @@ import {
   PlusCircle,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -52,6 +53,14 @@ type ClientCalendarEvent = CalendarEvent & {
 };
 
 export default function CalendarPage() {
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'add') {
+      setIsEventFormOpen(true);
+    }
+  }, [searchParams]);
+
   const { data: session, status } = useSession({ required: true });
 
   const [weekStartDate, setWeekStartDate] = useState<Date | undefined>();
