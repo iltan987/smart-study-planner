@@ -10,7 +10,7 @@ export function DashboardTodoItem({
   const displayDate = todo.dueTime
     ? format(todo.dueTime, 'p')
     : todo.date
-      ? 'All-day'
+      ? format(todo.date, 'MMM d')
       : 'No due date';
 
   const isCompleted = todo.status === 'COMPLETED';
