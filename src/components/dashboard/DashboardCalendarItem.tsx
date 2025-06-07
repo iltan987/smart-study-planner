@@ -1,7 +1,11 @@
 import type { CalendarEvent } from '@prisma/client';
 import { format } from 'date-fns';
 
-export function DashboardCalendarItem({ event }: { event: CalendarEvent }) {
+export function DashboardCalendarItem({
+  event,
+}: {
+  event: Pick<CalendarEvent, 'end' | 'start' | 'title'>;
+}) {
   return (
     <div className="flex items-start gap-3 p-3 hover:bg-muted/50 rounded-md transition-colors">
       <div className="flex flex-col items-center pt-0.5">
