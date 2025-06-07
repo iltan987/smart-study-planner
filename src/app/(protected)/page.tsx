@@ -52,7 +52,7 @@ export default async function DashboardPage() {
             </Button>
             <Button asChild variant="secondary" size="lg" className="w-full">
               <Link href="/chat" prefetch={false}>
-                <MessageSquare className="mr-2 h-5 w-5" /> Chat with AI Pal
+                <MessageSquare className="mr-2 h-5 w-5" /> Chat with Aida
               </Link>
             </Button>
           </CardContent>
