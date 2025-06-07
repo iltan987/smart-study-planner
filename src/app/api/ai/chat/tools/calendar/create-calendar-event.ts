@@ -1,119 +1,63 @@
 import { createCalendarEvent as serverActionCreateCalendarEvent } from '@/actions/calendar.action';
 import type { CreateCalendarEventToolInput } from '@/schemas/ai-tools.schema';
-import { createCalendarEventToolSchema } from '@/schemas/ai-tools.schema';
+import { createCalendarEventParamsSchema } from '@/schemas/ai-tools.schema';
 import type { CreateCalendarEventInputSchema as PrismaCreateCalendarEventInputSchema } from '@/schemas/calendar.schema';
-import { processAiDateTimeInput } from '@/utils/date.util';
-import { addMinutes, endOfDay, isAfter, isEqual, startOfDay } from 'date-fns';
+import { endOfDay, isBefore, isEqual, parseISO, startOfDay } from 'date-fns';
 import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 
 export const toolCreateCalendarEvent = {
   description:
-    "Creates a new event in the user's calendar. Events must occur on a single calendar day.",
-  parameters: createCalendarEventToolSchema,
+    "Use this tool to create a new, time-blocked event in the user's calendar. This is for events with a fixed duration, like a lecture, meeting, or appointment. All fields are required.",
+  parameters: createCalendarEventParamsSchema,
   execute: async ({
     userId,
     userTimezone,
-    currentServerDate,
     args,
   }: {
     userId: string;
     userTimezone: string;
-    currentServerDate: Date;
     args: CreateCalendarEventToolInput;
   }): Promise<string> => {
     console.log(
       `TOOL CALL: create_calendar_event for user ${userId} with args:`,
       JSON.stringify(args, null, 2)
     );
-    const {
-      title,
-      startTime: aiStartTime,
-      endTime: aiEndTime,
-      durationInMinutes,
-    } = args;
+    const { title, date, startTime, endTime } = args;
 
-    const processedStartTime = processAiDateTimeInput(
-      aiStartTime,
-      userTimezone,
-      currentServerDate
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return 'Error: The date must be in the format YYYY-MM-DD.';
+    }
+    if (!/^\d{2}:\d{2}$/.test(startTime)) {
+      return 'Error: The start time must be in the format HH:mm (24-hour format).';
+    }
+    if (!/^\d{2}:\d{2}$/.test(endTime)) {
+      return 'Error: The end time must be in the format HH:mm (24-hour format).';
+    }
+
+    const parsedDate = parseISO(date);
+    if (isNaN(parsedDate.getTime())) {
+      return 'Error: The provided date is invalid.';
+    }
+
+    const finalStartTime = fromZonedTime(
+      parseISO(`${date}T${startTime}`),
+      userTimezone
     );
-    if (!processedStartTime) {
-      return `Error: I couldn't understand the start time for the event. Please provide a clear date and, if applicable, a time. You provided: ${JSON.stringify(aiStartTime)}`;
-    }
 
-    let finalEndTimeUTC: Date;
-    const eventDayStartLocal = startOfDay(processedStartTime.userLocalTime); // The calendar day of the event in user's TZ
-
-    if (aiEndTime) {
-      const processedEndTime = processAiDateTimeInput(
-        aiEndTime,
-        userTimezone,
-        currentServerDate
-      );
-      if (!processedEndTime) {
-        return `Error: I couldn't understand the end time for the event. You provided: ${JSON.stringify(aiEndTime)}`;
-      }
-      // Enforce that the event ends on the same calendar day it starts, in user's local time.
-      if (
-        !isEqual(startOfDay(processedEndTime.userLocalTime), eventDayStartLocal)
-      ) {
-        return `Error: The event's end time must be on the same calendar day as its start time. The event starts on ${formatInTimeZone(eventDayStartLocal, userTimezone, 'PPP')}. Please provide an end time on this date.`;
-      }
-      finalEndTimeUTC = processedEndTime.finalDateUTC;
-    } else if (durationInMinutes) {
-      finalEndTimeUTC = addMinutes(
-        processedStartTime.finalDateUTC,
-        durationInMinutes
-      );
-      // Check if the calculated end time spills into the next day in the user's local timezone.
-      const calculatedEndUserLocal = toZonedTime(finalEndTimeUTC, userTimezone);
-      if (!isEqual(startOfDay(calculatedEndUserLocal), eventDayStartLocal)) {
-        // If it spills, cap it at the end of the event's start day.
-        finalEndTimeUTC = fromZonedTime(
-          endOfDay(processedStartTime.userLocalTime),
-          userTimezone
-        );
-        console.warn(
-          `Calendar event "${title}" duration of ${durationInMinutes}min from ${formatInTimeZone(processedStartTime.userLocalTime, userTimezone, 'Pp')} crossed midnight in user's timezone. Capped to end of day.`
-        );
-      }
-    } else {
-      // No endTime and no durationInMinutes.
-      if (processedStartTime.isAllDay) {
-        // If AI implied an all-day start (e.g., by not setting time components for startTime),
-        // the event spans the entire day.
-        // processAiDateTimeInput sets `userLocalTime` to start of day if `isAllDay` is true.
-        // So, `processedStartTime.finalDateUTC` is start-of-day UTC.
-        // `finalEndTimeUTC` should be end-of-day UTC for that same local day.
-        finalEndTimeUTC = fromZonedTime(
-          endOfDay(processedStartTime.userLocalTime),
-          userTimezone
-        );
-      } else {
-        // It's a timed event, but no end/duration given. Default to a 60-minute duration.
-        finalEndTimeUTC = addMinutes(processedStartTime.finalDateUTC, 60);
-        const calculatedEndUserLocal = toZonedTime(
-          finalEndTimeUTC,
-          userTimezone
-        );
-        if (!isEqual(startOfDay(calculatedEndUserLocal), eventDayStartLocal)) {
-          finalEndTimeUTC = fromZonedTime(
-            endOfDay(processedStartTime.userLocalTime),
-            userTimezone
-          );
-        }
-      }
-    }
+    const finalEndTime = fromZonedTime(
+      parseISO(`${date}T${endTime}`),
+      userTimezone
+    );
 
     // Final validation: end time must be strictly after start time.
-    if (!isAfter(finalEndTimeUTC, processedStartTime.finalDateUTC)) {
-      return `Error: The event's calculated end time (${formatInTimeZone(toZonedTime(finalEndTimeUTC, userTimezone), userTimezone, 'Pp')}) must be after its start time (${formatInTimeZone(processedStartTime.userLocalTime, userTimezone, 'Pp')}). Please check the times or duration.`;
+    if (isBefore(finalStartTime, finalEndTime)) {
+      return `Error: The event's calculated end time (${formatInTimeZone(toZonedTime(finalEndTime, userTimezone), userTimezone, 'Pp')}) must be after its start time (${formatInTimeZone(toZonedTime(finalStartTime, userTimezone), userTimezone, 'Pp')}). Please check the times or duration.`;
     }
 
     const prismaCalendarInput: PrismaCreateCalendarEventInputSchema = {
       title,
-      start: processedStartTime.finalDateUTC,
-      end: finalEndTimeUTC,
+      start: finalStartTime,
+      end: finalEndTime,
     };
 
     const result = await serverActionCreateCalendarEvent(prismaCalendarInput);
