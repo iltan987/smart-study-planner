@@ -1,7 +1,13 @@
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { CalendarEvent } from '@prisma/client';
-import { eachDayOfInterval, format, isSameDay, isToday } from 'date-fns';
+import {
+  eachDayOfInterval,
+  format,
+  isEqual,
+  isSameDay,
+  isToday,
+} from 'date-fns';
 import { Edit3, PlusCircle, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -150,8 +156,10 @@ export function WeeklyCalendarView({
                             {event.title}
                           </p>
                           <p>
-                            {format(event.start, 'p')} -{' '}
-                            {format(event.end, 'p')}
+                            {format(event.start, 'p')}
+                            {!isEqual(event.start, event.end) && (
+                              <> - {format(event.end, 'p')}</>
+                            )}
                           </p>
                           {(event._isAdding ||
                             event._isUpdating ||
