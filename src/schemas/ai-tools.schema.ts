@@ -1,248 +1,118 @@
-import { TodoCategory, TodoPriority, TodoStatus } from '@prisma/client';
 import { z } from 'zod';
 
-const durationSchemaContents = {
-  years: z
-    .number()
-    .int()
-    .optional()
-    .describe("Number of years to add/set. Can be negative for 'add'."),
-  months: z
-    .number()
-    .int()
-    .optional()
-    .describe(
-      "Number of months to add/set. Can be negative for 'add'. For 'set', use 1 for January, 12 for December."
-    ),
-  weeks: z
-    .number()
-    .int()
-    .optional()
-    .describe("Number of weeks to add/set. Can be negative for 'add'."),
-  days: z
-    .number()
-    .int()
-    .optional()
-    .describe("Number of days to add/set. Can be negative for 'add'."),
-  hours: z
-    .number()
-    .int()
-    .min(0)
-    .max(23)
-    .optional()
-    .describe(
-      "Hour component to set (0-23) or add. For 'set', 24-hour format."
-    ),
-  minutes: z
-    .number()
-    .int()
-    .min(0)
-    .max(59)
-    .optional()
-    .describe('Minute component to set (0-59) or add.'),
-  seconds: z
-    .number()
-    .int()
-    .min(0)
-    .max(59)
-    .optional()
-    .describe(
-      "Second component to set (0-59) or add. Defaults to 0 if not specified for a 'set' time."
-    ),
-};
-
-const durationSchema = z
-  .object(durationSchemaContents)
-  .describe(
-    "A duration object. All fields are optional numbers. For 'set.months', use 1-12. For 'add', values can be negative."
-  );
-
-export const aiDateTimeInputSchema = z
-  .object({
-    add: durationSchema
-      .optional()
-      .describe(
-        "Use for relative shifts from the current user time (e.g., {days: 1} for 'tomorrow'). Do NOT use 'add' for specific times of day like '10 a.m.' unless user says 'in 10 hours'."
-      ),
-    set: durationSchema
-      .optional()
-      .describe(
-        "Use for setting absolute components of the target date/time (e.g., {hours: 17} for '5 PM'; {year: 2024, month: 7, day: 20} for 'July 20, 2024'). Month is 1-12."
-      ),
-  })
-  .refine((data) => data.add || data.set, {
-    message:
-      "For any date/time input, you must provide at least an 'add' or a 'set' property, or both.",
-  })
-  .describe(
-    "Object for specifying date/time. For 'tomorrow at 10 AM', use {add: {days: 1}, set: {hours: 10, minutes: 0}}. For 'next Monday', calculate days to add from the current day of the week (provided in system context) and use {add: {days: X}}."
-  );
-
-export type AiDateTimeInput = z.infer<typeof aiDateTimeInputSchema>;
-
-export const createTodoToolSchema = z
+export const createTodoParamsSchema = z
   .object({
     title: z
       .string()
-      .min(1)
-      .describe('The title of the todo item. This is required.'),
+      .describe(
+        "The main subject or title of the to-do item. This is the only mandatory field. Extract it directly from the user's request (e.g., 'Submit calculus assignment')."
+      ),
     description: z
       .string()
       .optional()
-      .describe('A more detailed description of the todo item.'),
-    dateTime: aiDateTimeInputSchema
+      .describe(
+        "Optional additional details, notes, or context about the to-do item. For example, if the user says 'remind me to read chapter 5 for philosophy, the one about existentialism', the title would be 'Read chapter 5 for philosophy' and the description could be 'The chapter about existentialism'."
+      ),
+    date: z
+      .string()
+      .describe(
+        "The specific date for the to-do item in 'YYYY-MM-DD' format. If the user doesn't specify a date, infer it as today's date based on the reference time."
+      ),
+    dueTime: z
+      .string()
       .optional()
       .describe(
-        "The due date/time for the todo. Must be an AiDateTimeInput object. For 'tomorrow at 10 AM', use {add: {days: 1}, set: {hours: 10, minutes: 0}}. See main AiDateTimeInput description for details."
+        "The specific time the to-do is due, in 'HH:mm' (24-hour) format. IMPORTANT: If the user does not specify a time (e.g., 'remind me to do laundry tomorrow'), this field MUST be left null. A null value signifies an 'all-day' to-do."
       ),
     duration: z
       .number()
-      .int()
-      .positive()
       .optional()
       .describe(
-        'Estimated duration in minutes to complete the todo (e.g., 30 for 30 minutes).'
+        "The estimated time in minutes required to complete the task. Infer this from phrases like 'study for 2 hours' or 'a 30-minute workout'."
       ),
     priority: z
-      .nativeEnum(TodoPriority)
+      .enum(['LOW', 'MEDIUM', 'HIGH'])
       .optional()
       .describe(
-        `Priority of the todo. Default is MEDIUM. Available: ${Object.values(TodoPriority).join(', ')}`
+        "The urgency of the to-do. Map the user's language to the enum values. For example: 'urgent', 'important', 'ASAP' -> HIGH. 'not that important', 'whenever' -> LOW. Default to MEDIUM if not specified or unclear."
       ),
     category: z
-      .nativeEnum(TodoCategory)
+      .enum(['STUDY', 'ASSIGNMENT', 'EXAM', 'WORK', 'GYM', 'OTHER'])
       .optional()
       .describe(
-        `Category of the todo. Default is STUDY. Available: ${Object.values(TodoCategory).join(', ')}`
+        "The type of the to-do. Classify the user's request into one of the available categories. If the user mentions an 'assignment', 'paper', or 'problem set', use ASSIGNMENT. If they mention 'prepare for', 'review for', or 'midterm/final', use EXAM. Default to STUDY for general academic tasks or OTHER for non-academic tasks."
       ),
     status: z
-      .nativeEnum(TodoStatus)
+      .enum(['PENDING', 'COMPLETED', 'MISSED'])
       .optional()
       .describe(
-        `Status of the todo. Default is PENDING. Available: ${Object.values(TodoStatus).join(', ')}`
-      ),
-  })
-  .describe("Creates a new todo item in the user's planner.");
-export type CreateTodoToolInput = z.infer<typeof createTodoToolSchema>;
-
-export const getTodosToolSchema = z
-  .object({
-    dateTime: aiDateTimeInputSchema
-      .optional()
-      .describe(
-        "Specific date to retrieve todos for (e.g., for 'today', use {add: {days:0}} or calculate appropriate 'set'). Format as AiDateTimeInput object."
-      ),
-    dateRangeStart: aiDateTimeInputSchema
-      .optional()
-      .describe(
-        'The start of a date range to query todos. Format as AiDateTimeInput object.'
-      ),
-    dateRangeEnd: aiDateTimeInputSchema
-      .optional()
-      .describe(
-        'The end of a date range to query todos. Format as AiDateTimeInput object.'
-      ),
-    status: z
-      .nativeEnum(TodoStatus)
-      .optional()
-      .describe(
-        `Filter todos by status. Available: ${Object.values(TodoStatus).join(', ')}`
-      ),
-    priority: z
-      .nativeEnum(TodoPriority)
-      .optional()
-      .describe(
-        `Filter todos by priority. Available: ${Object.values(TodoPriority).join(', ')}`
-      ),
-    category: z
-      .nativeEnum(TodoCategory)
-      .optional()
-      .describe(
-        `Filter todos by category. Available: ${Object.values(TodoCategory).join(', ')}`
-      ),
-    limit: z
-      .number()
-      .int()
-      .positive()
-      .optional()
-      .default(10)
-      .describe('Maximum number of todos to return. Defaults to 10.'),
-    query: z
-      .string()
-      .optional()
-      .describe(
-        "A general query string to search in todo titles or descriptions (e.g., 'history essay', 'math homework')."
+        "The initial status of the to-do. When creating a new to-do, this should always be 'PENDING'."
       ),
   })
   .describe(
-    "Retrieves a list of the user's todos based on specified criteria. All parameters are optional. Use AiDateTimeInput for all date parameters."
+    'A structured representation of a single to-do item, containing all its properties like title, timing, priority, and category.'
   );
-export type GetTodosToolInput = z.infer<typeof getTodosToolSchema>;
+export type CreateTodoToolInput = z.infer<typeof createTodoParamsSchema>;
 
-export const createCalendarEventToolSchema = z
+export const listTodosParamsSchema = z
+  .object({
+    date: z
+      .string()
+      .describe(
+        "The single, specific date for which to fetch to-do items, in 'YYYY-MM-DD' format. This field is required. Infer the date from the user's request (e.g., 'today', 'tomorrow', 'December 5th')."
+      ),
+  })
+  .describe(
+    "Specifies the exact date for which to query the user's to-do list."
+  );
+export type ListTodosToolInput = z.infer<typeof listTodosParamsSchema>;
+
+export const createCalendarEventParamsSchema = z
   .object({
     title: z
       .string()
-      .min(1)
-      .describe('The title of the calendar event. This is required.'),
-    startTime: aiDateTimeInputSchema.describe(
-      'The specific start date and time of the event. This is required. If the user provides only a date, either clarify for a time or assume a default start time (e.g., beginning of the day for an all-day event, or 9 AM for a general marker) when constructing this object.'
-    ),
-    endTime: aiDateTimeInputSchema
-      .optional()
       .describe(
-        "The end date and time of the event. Must be on the same calendar day as startTime. If omitted, 'durationInMinutes' can be used, or a default duration will apply."
+        "The title of the calendar event, such as 'Psychology 101 Lecture' or 'Team Meeting'."
       ),
-    durationInMinutes: z
-      .number()
-      .int()
-      .positive()
-      .optional()
+    date: z
+      .string()
       .describe(
-        "The duration of the event in minutes (e.g., 60 for 1 hour). Used if 'endTime' is not specified for a timed event."
+        "The specific date for the event in 'YYYY-MM-DD' format. All calendar events must occur on a single day."
+      ),
+    startTime: z
+      .string()
+      .describe(
+        "The mandatory start time of the event in 'HH:mm' (24-hour) format. Extract this from the user's prompt (e.g., 'from 2pm to 4pm', start time is '14:00')."
+      ),
+    endTime: z
+      .string()
+      .describe(
+        "The mandatory end time of the event in 'HH:mm' (24-hour) format. It must be after the start time. Extract this from the user's prompt (e.g., 'from 2pm to 4pm', end time is '16:00')."
       ),
   })
   .describe(
-    "Creates a new event in the user's calendar. All events are for a single calendar day."
+    'A structured representation of a single calendar event with a mandatory title, date, start time, and end time.'
   );
 export type CreateCalendarEventToolInput = z.infer<
-  typeof createCalendarEventToolSchema
+  typeof createCalendarEventParamsSchema
 >;
 
-export const getCalendarEventsToolSchema = z
+export const listCalendarEventsParamsSchema = z
   .object({
-    dateTime: aiDateTimeInputSchema
-      .optional()
-      .describe(
-        'Specific single date to retrieve events for. Format as AiDateTimeInput object.'
-      ),
-    dateRangeStart: aiDateTimeInputSchema
-      .optional()
-      .describe(
-        'The start of a date range for querying events (up to 7 days total). Format as AiDateTimeInput object.'
-      ),
-    dateRangeEnd: aiDateTimeInputSchema
-      .optional()
-      .describe(
-        'The end of a date range for querying events (up to 7 days total). Format as AiDateTimeInput object.'
-      ),
-    query: z
+    startDate: z
       .string()
-      .optional()
       .describe(
-        'A general query string to search in event titles or descriptions.'
+        "The beginning of the date range to fetch calendar events from, in 'YYYY-MM-DD' format. For relative terms like 'this week', this would be the date of the most recent Monday."
       ),
-    limit: z
-      .number()
-      .int()
-      .positive()
-      .optional()
-      .default(10)
-      .describe('Maximum number of events to return. Defaults to 10.'),
+    endDate: z
+      .string()
+      .describe(
+        "The end of the date range to fetch calendar events from, in 'YYYY-MM-DD' format. For relative terms like 'this week', this would be the date of the upcoming Sunday."
+      ),
   })
   .describe(
-    "Retrieves events from the user's calendar. Can query for a single day or a range up to 7 days."
+    'Defines the time period for fetching calendar events, specified by a start and end date.'
   );
-export type GetCalendarEventsToolInput = z.infer<
-  typeof getCalendarEventsToolSchema
+export type ListCalendarEventsToolInput = z.infer<
+  typeof listCalendarEventsParamsSchema
 >;
