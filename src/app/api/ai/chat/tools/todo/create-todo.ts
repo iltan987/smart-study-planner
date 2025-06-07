@@ -2,8 +2,25 @@ import { createTodo as serverActionCreateTodo } from '@/actions/todos.action';
 import type { CreateTodoToolInput } from '@/schemas/ai-tools.schema';
 import { createTodoParamsSchema } from '@/schemas/ai-tools.schema';
 import type { CreateTodoInputSchema as PrismaCreateTodoInput } from '@/schemas/todos.schema';
-import { format, parseISO } from 'date-fns';
-import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
+import type { Todo } from '@prisma/client';
+import { parseISO } from 'date-fns';
+import { fromZonedTime } from 'date-fns-tz';
+
+interface CreateTodoToolResult {
+  success: boolean;
+  todo?: Pick<
+    Todo,
+    | 'category'
+    | 'date'
+    | 'description'
+    | 'dueTime'
+    | 'duration'
+    | 'priority'
+    | 'status'
+    | 'title'
+  >;
+  error?: string;
+}
 
 export const toolCreateTodo = {
   description:
@@ -17,7 +34,7 @@ export const toolCreateTodo = {
     userId: string;
     args: CreateTodoToolInput;
     userTimezone: string;
-  }): Promise<string> => {
+  }): Promise<CreateTodoToolResult> => {
     console.log(
       `TOOL CALL: create_todo for user ${userId} with args:`,
       JSON.stringify(args, null, 2)
@@ -34,16 +51,26 @@ export const toolCreateTodo = {
     } = args;
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-      return 'Error: The date must be in the format YYYY-MM-DD.';
+      return {
+        success: false,
+        error: 'Error: The date must be in the format YYYY-MM-DD.',
+      };
     }
 
     if (dueTimeString && !/^\d{2}:\d{2}$/.test(dueTimeString)) {
-      return 'Error: The due time must be in the format HH:mm (24-hour format).';
+      return {
+        success: false,
+        error:
+          'Error: The due time must be in the format HH:mm (24-hour format).',
+      };
     }
 
     const parsedDate = parseISO(dateString);
     if (isNaN(parsedDate.getTime())) {
-      return 'Error: The provided date is invalid.';
+      return {
+        success: false,
+        error: 'Error: The provided date is invalid.',
+      };
     }
 
     const finalDueTime =
@@ -75,21 +102,45 @@ export const toolCreateTodo = {
     if (result.success) {
       if (!result.data) {
         console.error('No data returned from serverActionCreateTodo');
-        return 'Error: Todo created successfully, but no data was returned from the server.';
+        return {
+          success: false,
+          error:
+            'Error: Todo created successfully, but no data was returned from the server.',
+        };
       }
-      let confirmationDateString = '';
-      if (result.data.date)
-        confirmationDateString = `for ${format(new Date(result.data.date.getFullYear(), result.data.date.getMonth(), result.data.date.getDate()), 'PPP')}`; // Reconstruct Date from YMD for formatting
-      else if (result.data.dueTime)
-        confirmationDateString = `due ${formatInTimeZone(result.data.dueTime, userTimezone, 'PPP p')}`;
-      return `Todo "${result.data.title}" created successfully ${confirmationDateString}. ID: ${result.data.id}.`;
+      const {
+        category,
+        date,
+        description,
+        dueTime,
+        duration,
+        priority,
+        status,
+        title,
+      } = result.data;
+      return {
+        success: true,
+        todo: {
+          category,
+          date,
+          description,
+          dueTime,
+          duration,
+          priority,
+          status,
+          title,
+        },
+      };
     } else {
       const errorMsg =
         typeof result.error === 'string'
           ? result.error
           : JSON.stringify(result.error);
       console.error('Error from serverActionCreateTodo:', errorMsg);
-      return `Sorry, I couldn't create the todo. ${errorMsg.includes('required') ? 'Some required information might be missing.' : 'There was an issue.'}`;
+      return {
+        success: false,
+        error: `Sorry, I couldn't create the todo. ${errorMsg.includes('required') ? 'Some required information might be missing.' : 'There was an issue.'}`,
+      };
     }
   },
 };

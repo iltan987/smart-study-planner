@@ -2,8 +2,20 @@ import { createCalendarEvent as serverActionCreateCalendarEvent } from '@/action
 import type { CreateCalendarEventToolInput } from '@/schemas/ai-tools.schema';
 import { createCalendarEventParamsSchema } from '@/schemas/ai-tools.schema';
 import type { CreateCalendarEventInputSchema as PrismaCreateCalendarEventInputSchema } from '@/schemas/calendar.schema';
-import { endOfDay, isBefore, isEqual, parseISO, startOfDay } from 'date-fns';
+import type { CalendarEvent } from '@prisma/client';
+import { isBefore, parseISO } from 'date-fns';
 import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
+
+type CreateCalendarEventToolResultItem = Pick<
+  CalendarEvent,
+  'title' | 'start' | 'end'
+>;
+
+interface CreateCalendarEventToolResult {
+  success: boolean;
+  event?: CreateCalendarEventToolResultItem;
+  error?: string;
+}
 
 export const toolCreateCalendarEvent = {
   description:
@@ -17,7 +29,7 @@ export const toolCreateCalendarEvent = {
     userId: string;
     userTimezone: string;
     args: CreateCalendarEventToolInput;
-  }): Promise<string> => {
+  }): Promise<CreateCalendarEventToolResult> => {
     console.log(
       `TOOL CALL: create_calendar_event for user ${userId} with args:`,
       JSON.stringify(args, null, 2)
@@ -25,18 +37,32 @@ export const toolCreateCalendarEvent = {
     const { title, date, startTime, endTime } = args;
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return 'Error: The date must be in the format YYYY-MM-DD.';
+      return {
+        success: false,
+        error: 'Error: The date must be in the format YYYY-MM-DD.',
+      };
     }
     if (!/^\d{2}:\d{2}$/.test(startTime)) {
-      return 'Error: The start time must be in the format HH:mm (24-hour format).';
+      return {
+        success: false,
+        error:
+          'Error: The start time must be in the format HH:mm (24-hour format).',
+      };
     }
     if (!/^\d{2}:\d{2}$/.test(endTime)) {
-      return 'Error: The end time must be in the format HH:mm (24-hour format).';
+      return {
+        success: false,
+        error:
+          'Error: The end time must be in the format HH:mm (24-hour format).',
+      };
     }
 
     const parsedDate = parseISO(date);
     if (isNaN(parsedDate.getTime())) {
-      return 'Error: The provided date is invalid.';
+      return {
+        success: false,
+        error: 'Error: The provided date is invalid.',
+      };
     }
 
     const finalStartTime = fromZonedTime(
@@ -49,9 +75,11 @@ export const toolCreateCalendarEvent = {
       userTimezone
     );
 
-    // Final validation: end time must be strictly after start time.
-    if (isBefore(finalStartTime, finalEndTime)) {
-      return `Error: The event's calculated end time (${formatInTimeZone(toZonedTime(finalEndTime, userTimezone), userTimezone, 'Pp')}) must be after its start time (${formatInTimeZone(toZonedTime(finalStartTime, userTimezone), userTimezone, 'Pp')}). Please check the times or duration.`;
+    if (isBefore(finalEndTime, finalStartTime)) {
+      return {
+        success: false,
+        error: `Error: The event's calculated end time (${formatInTimeZone(toZonedTime(finalEndTime, userTimezone), userTimezone, 'Pp')}) must be after its start time (${formatInTimeZone(toZonedTime(finalStartTime, userTimezone), userTimezone, 'Pp')}). Please check the times.`,
+      };
     }
 
     const prismaCalendarInput: PrismaCreateCalendarEventInputSchema = {
@@ -64,34 +92,30 @@ export const toolCreateCalendarEvent = {
 
     if (result.success) {
       if (!result.data) {
-        return `Error: The server did not return any calendar event data. Please check your calendar settings or try again later.`;
+        return {
+          success: false,
+          error:
+            'Error: The server did not return any calendar event data. Please check your calendar settings or try again later.',
+        };
       }
-      const startStr = formatInTimeZone(result.data.start, userTimezone, 'Pp');
-      const endStr = formatInTimeZone(result.data.end, userTimezone, 'p'); // Use 'p' for end time if on same day
-      const dayStr = formatInTimeZone(result.data.start, userTimezone, 'PPP');
-      // Check if it's effectively an all-day event for confirmation message
-      const isEffectivelyAllDay =
-        isEqual(
-          startOfDay(toZonedTime(result.data.start, userTimezone)),
-          toZonedTime(result.data.start, userTimezone)
-        ) &&
-        isEqual(
-          endOfDay(toZonedTime(result.data.end, userTimezone)),
-          toZonedTime(result.data.end, userTimezone)
-        );
-
-      if (isEffectivelyAllDay) {
-        return `Event "${result.data.title}" created successfully for the whole day on ${dayStr}. ID: ${result.data.id}.`;
-      } else {
-        return `Event "${result.data.title}" created successfully on ${dayStr} from ${startStr.split(' at ')[1] || startStr} to ${endStr}. ID: ${result.data.id}.`;
-      }
+      return {
+        success: true,
+        event: {
+          title: result.data.title,
+          start: result.data.start,
+          end: result.data.end,
+        },
+      };
     } else {
       const errorMsg =
         typeof result.error === 'string'
           ? result.error
           : JSON.stringify(result.error);
       console.error('Error from serverActionCreateCalendarEvent:', errorMsg);
-      return `Sorry, I couldn't create the calendar event. ${errorMsg.includes('Invalid date') ? 'The date/time seems invalid.' : errorMsg}`;
+      return {
+        success: false,
+        error: `Sorry, I couldn't create the calendar event. ${errorMsg.includes('Invalid date') ? 'The date/time seems invalid.' : errorMsg}`,
+      };
     }
   },
 };
