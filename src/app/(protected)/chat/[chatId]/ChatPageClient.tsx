@@ -4,6 +4,8 @@ import {
   deleteMessage as deleteMessageAction,
   updateRating,
 } from '@/actions/chat.action';
+import { DashboardCalendarItem } from '@/components/dashboard/DashboardCalendarItem';
+import { DashboardTodoItem } from '@/components/dashboard/DashboardTodoItem';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +20,7 @@ import { cn } from '@/lib/utils';
 import type { AssistantRating } from '@/types/assistant-rating';
 import type { Message } from '@ai-sdk/react';
 import { useChat } from '@ai-sdk/react';
+import type { CalendarEvent, Todo } from '@prisma/client';
 import {
   AlertCircle,
   Copy,
@@ -35,6 +38,28 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { toast } from 'sonner';
+
+type CreateTodoToolResultItem = Pick<
+  Todo,
+  'date' | 'description' | 'dueTime' | 'status' | 'title'
+>;
+
+interface CreateTodoToolResult {
+  success: boolean;
+  todo?: CreateTodoToolResultItem;
+  error?: string;
+}
+
+type CreateCalendarEventToolResultItem = Pick<
+  CalendarEvent,
+  'title' | 'start' | 'end'
+>;
+
+interface CreateCalendarEventToolResult {
+  success: boolean;
+  event?: CreateCalendarEventToolResultItem;
+  error?: string;
+}
 
 interface ChatPageClientProps {
   chatId: string;
@@ -115,6 +140,120 @@ const ChatMessageItem = memo(
             </DropdownMenu>
           </div>
         </div>
+        {/* Render Tool Invocations */}
+        {message.parts &&
+          message.parts.some((f) => f.type === 'tool-invocation') && (
+            <div className="mt-2 space-y-2">
+              {message.parts
+                .filter((f) => f.type === 'tool-invocation')
+                .map((part) => {
+                  const { toolName, toolCallId, state } = part.toolInvocation;
+
+                  if (toolName === 'create_todo') {
+                    if (state === 'result') {
+                      const result = part.toolInvocation
+                        .result as CreateTodoToolResult;
+                      if (result.success && result.todo) {
+                        return (
+                          <div
+                            key={toolCallId}
+                            className="p-3 border rounded-lg bg-muted/30 dark:bg-muted/20 shadow-sm"
+                          >
+                            <p className="text-xs font-semibold text-muted-foreground mb-2">
+                              Todo Created:
+                            </p>
+                            <div className="space-y-2">
+                              <DashboardTodoItem todo={result.todo} />
+                            </div>
+                          </div>
+                        );
+                      } else if (result.success && result.todo) {
+                        return (
+                          <div
+                            key={toolCallId}
+                            className="p-3 border rounded-lg bg-muted/30 dark:bg-muted/20 shadow-sm"
+                          >
+                            <p className="text-xs font-semibold text-muted-foreground mb-2">
+                              Todos Created:
+                            </p>
+                            <div className="space-y-2">
+                              <DashboardTodoItem todo={result.todo} />
+                            </div>
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div
+                            key={toolCallId}
+                            className="mt-2 p-2 text-xs border rounded-md bg-destructive/10 border-destructive/30 text-destructive"
+                          >
+                            <span className="font-medium">
+                              Error creating todo:
+                            </span>{' '}
+                            {result.error || 'An unknown error occurred.'}
+                          </div>
+                        );
+                      }
+                    } else {
+                      // 'pending' or other states
+                      return (
+                        <div
+                          key={toolCallId}
+                          className="mt-2 flex items-center space-x-2 text-xs p-2 border rounded-md bg-muted/30 dark:bg-muted/20 text-muted-foreground"
+                        >
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                          <span>Creating todo(s)...</span>
+                        </div>
+                      );
+                    }
+                  } else if (toolName === 'create_calendar_event') {
+                    if (state === 'result') {
+                      const result = part.toolInvocation
+                        .result as CreateCalendarEventToolResult;
+                      if (result.success && result.event) {
+                        return (
+                          <div
+                            key={toolCallId}
+                            className="p-3 border rounded-lg bg-muted/30 dark:bg-muted/20 shadow-sm"
+                          >
+                            <p className="text-xs font-semibold text-muted-foreground mb-2">
+                              Calendar Event Created:
+                            </p>
+                            {/* Ensure result.event is compatible with DashboardCalendarItem props */}
+                            <DashboardCalendarItem event={result.event} />
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div
+                            key={toolCallId}
+                            className="mt-2 p-2 text-xs border rounded-md bg-destructive/10 border-destructive/30 text-destructive"
+                          >
+                            <span className="font-medium">
+                              Error creating calendar event:
+                            </span>{' '}
+                            {result.error || 'An unknown error occurred.'}
+                          </div>
+                        );
+                      }
+                    } else {
+                      // 'pending' or other states
+                      return (
+                        <div
+                          key={toolCallId}
+                          className="mt-2 flex items-center space-x-2 text-xs p-2 border rounded-md bg-muted/30 dark:bg-muted/20 text-muted-foreground"
+                        >
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                          <span>Creating calendar event...</span>
+                        </div>
+                      );
+                    }
+                  }
+                  // Add handling for other tools here if needed in the future
+                  return null;
+                })}
+            </div>
+          )}
         {message.role === 'assistant' && (
           <div className="mt-1.5 flex space-x-1 self-start">
             <Button
