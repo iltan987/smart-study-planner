@@ -56,6 +56,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -69,6 +70,14 @@ type ClientTodo = Todo & {
 };
 
 export default function TodosPage() {
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'add') {
+      setIsAddTodoDialogOpen(true);
+    }
+  }, [searchParams]);
+
   const { data: session, status } = useSession({ required: true });
 
   const [selectedDate, setSelectedDate] = useState<Date>();
