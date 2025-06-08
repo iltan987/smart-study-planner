@@ -2,7 +2,7 @@ import { Gender } from '@prisma/client';
 import { z } from 'zod';
 import { yearMonthDate } from './time.schema';
 
-export const educationInfoSchema = z
+const educationInfoSchema = z
   .object({
     id: z.string().cuid().optional(),
     institution: z
@@ -61,7 +61,6 @@ export const educationInfoSchema = z
       path: ['cgpa'],
     }
   );
-export type EducationInfoInput = z.infer<typeof educationInfoSchema>;
 
 export const userProfileSchema = z.object({
   name: z
@@ -87,7 +86,7 @@ export const userProfileSchema = z.object({
 });
 export type UserProfileInput = z.infer<typeof userProfileSchema>;
 
-export const updateEducationInfoFormSchema = z
+const updateEducationInfoFormSchema = z
   .object({
     id: z.string().cuid().optional(),
     institution: z
@@ -157,9 +156,6 @@ export const updateEducationInfoFormSchema = z
       path: ['cgpa'],
     }
   );
-export type UpdateEducationInfoFormInput = z.infer<
-  typeof updateEducationInfoFormSchema
->;
 
 export const updateUserProfileFormSchema = z.object({
   name: z
