@@ -107,4 +107,5 @@ model EducationInfo {
   fieldOfStudy String
   startDate    DateTime  @db.Date
   endDate      DateTime? @db.Date
+  cgpa         Float?
 }
