@@ -56,13 +56,13 @@ export async function POST(req: Request) {
     return new Response('User not found', { status: 404 });
   }
 
-  const { id, message, timezone } = await req.json();
+  const { id: chatId, message, timezone } = await req.json();
 
-  if (!id || !message || !timezone) {
+  if (!chatId || !message || !timezone) {
     return new Response('Invalid request data', { status: 400 });
   }
 
-  if (typeof id !== 'string' || typeof timezone !== 'string') {
+  if (typeof chatId !== 'string' || typeof timezone !== 'string') {
     return new Response('Invalid request data types', { status: 400 });
   }
 
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
     return new Response('Invalid message format', { status: 400 });
   }
 
-  const previousMessages = await getMessagesFromRedisChat(id);
+  const previousMessages = await getMessagesFromRedisChat(chatId);
 
   const messages = appendClientMessage({
     messages: previousMessages,
@@ -157,11 +157,20 @@ export async function POST(req: Request) {
     messages,
     maxSteps: 10,
     async onFinish({ response }) {
+      if (!response || !response.messages || response.messages.length === 0) {
+        return;
+      }
+      const firstMessageId = response.messages[0].id;
+      const lastMessageId = response.messages[response.messages.length - 1].id;
+
       appendResponseMessages({
         messages,
         responseMessages: response.messages,
       }).forEach((msg) => {
-        addMessageToRedisChat(id, msg);
+        addMessageToRedisChat(
+          chatId,
+          msg.id === firstMessageId ? { ...msg, id: lastMessageId } : msg
+        );
       });
     },
     maxTokens: 8192,
