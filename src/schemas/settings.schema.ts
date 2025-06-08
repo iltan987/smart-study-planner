@@ -107,6 +107,27 @@ export const updateEducationInfoFormSchema = z
       .string()
       .date('End date must be a valid date.')
       .or(z.literal('')),
+    cgpa: z
+      .string()
+      .optional()
+      .refine(
+        (val) => {
+          if (val === undefined || val === null || val.trim() === '') {
+            return true; // Allow empty, null, or undefined
+          }
+          const num = parseFloat(val);
+          // Check if it's a number and gte 0
+          return !isNaN(num) && num >= 0;
+        },
+        {
+          message:
+            'CGPA must be a positive number (e.g., 3.75 or 85.0), or empty.',
+        }
+      ),
+    gradingSystem: z
+      .string()
+      .max(50, { message: 'Grading system description is too long.' })
+      .optional(),
   })
   .refine(
     (data) => {
@@ -121,6 +142,19 @@ export const updateEducationInfoFormSchema = z
     {
       message: 'End date must be after start date.',
       path: ['endDate'],
+    }
+  )
+  .refine(
+    (data) => {
+      const cgpaProvided = data.cgpa !== undefined && data.cgpa.trim() !== '';
+      const gradingSystemProvided =
+        data.gradingSystem !== undefined && data.gradingSystem.trim() !== '';
+      return cgpaProvided === gradingSystemProvided;
+    },
+    {
+      message:
+        'CGPA and Grading System must be provided together or not at all.',
+      path: ['cgpa'],
     }
   );
 export type UpdateEducationInfoFormInput = z.infer<

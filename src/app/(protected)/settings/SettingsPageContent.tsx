@@ -79,6 +79,8 @@ export type InitialSettingsUserData = {
       fieldOfStudy: string;
       startDate: Date;
       endDate: Date | null;
+      cgpa: number | null;
+      gradingSystem: string | null;
     }[];
   } | null;
   email: string;
@@ -111,6 +113,8 @@ export default function SettingsPageContent({
             ...edu,
             startDate: format(edu.startDate, 'yyyy-MM-dd'),
             endDate: edu.endDate ? format(edu.endDate, 'yyyy-MM-dd') : '',
+            cgpa: edu.cgpa !== null ? String(edu.cgpa) : '',
+            gradingSystem: edu.gradingSystem || '',
           }))
         : [],
     },
@@ -178,7 +182,12 @@ export default function SettingsPageContent({
       nationality: nationality === '' ? null : nationality,
       languages: languages.filter((lang) => lang.trim() !== ''),
       educationHistory: educationHistory.map((edu) => {
-        const { startDate, endDate, ...rest } = edu;
+        const { startDate, endDate, cgpa, gradingSystem, ...rest } = edu;
+        const numericCgpa =
+          typeof cgpa === 'string' && cgpa.trim() !== ''
+            ? parseFloat(cgpa)
+            : null;
+
         return {
           ...rest,
           startDate: new Date(startDate),
@@ -187,6 +196,9 @@ export default function SettingsPageContent({
                 endDate: new Date(endDate),
               }
             : undefined),
+          cgpa:
+            numericCgpa !== null && !isNaN(numericCgpa) ? numericCgpa : null,
+          ...(gradingSystem ? { gradingSystem } : undefined),
         };
       }),
     };
@@ -261,6 +273,8 @@ export default function SettingsPageContent({
         fieldOfStudy: '',
         startDate: '',
         endDate: '',
+        cgpa: '',
+        gradingSystem: '',
       },
       { shouldFocus: true }
     );
@@ -283,7 +297,7 @@ export default function SettingsPageContent({
           </Avatar>
           <div>
             <h1 className="text-2xl font-bold">{initialSessionData.name}</h1>
-            <p className="text-muted-foreground">{initialSessionData.email}</p>
+            <p className="text-muted-foreground">{initialUserData.email}</p>
           </div>
         </div>
       </div>
@@ -582,6 +596,51 @@ export default function SettingsPageContent({
                                 <FormLabel>End Date (Optional)</FormLabel>
                                 <FormControl>
                                   <Input type="date" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={profileAndEducationForm.control}
+                            name={`educationHistory.${index}.cgpa`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>CGPA (Optional)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    placeholder="e.g., 3.85"
+                                    step="0.01"
+                                    {...field}
+                                    value={field.value ?? ''}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      if (
+                                        value === '' ||
+                                        !isNaN(parseFloat(value))
+                                      ) {
+                                        field.onChange(value);
+                                      }
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={profileAndEducationForm.control}
+                            name={`educationHistory.${index}.gradingSystem`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Grading System (Optional)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder="e.g., 4.0 Scale, Percentage"
+                                    {...field}
+                                    value={field.value ?? ''}
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
