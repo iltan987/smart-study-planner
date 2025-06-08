@@ -64,7 +64,7 @@ import { useMemo, useState } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
-export type InitialSettingsUserData = {
+type InitialSettingsUserData = {
   name: string;
   UserProfile: {
     birthDate: Date | null;
