@@ -157,11 +157,20 @@ export async function POST(req: Request) {
     messages,
     maxSteps: 10,
     async onFinish({ response }) {
+      if (!response || !response.messages || response.messages.length === 0) {
+        return;
+      }
+      const firstMessageId = response.messages[0].id;
+      const lastMessageId = response.messages[response.messages.length - 1].id;
+
       appendResponseMessages({
         messages,
         responseMessages: response.messages,
       }).forEach((msg) => {
-        addMessageToRedisChat(id, msg);
+        addMessageToRedisChat(
+          chatId,
+          msg.id === firstMessageId ? { ...msg, id: lastMessageId } : msg
+        );
       });
     },
     maxTokens: 8192,
