@@ -526,7 +526,7 @@ export default function SettingsPageContent({
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-4">
                           <FormField
                             control={profileAndEducationForm.control}
                             name={`educationHistory.${index}.institution`}
@@ -543,109 +543,117 @@ export default function SettingsPageContent({
                               </FormItem>
                             )}
                           />
-                          <FormField
-                            control={profileAndEducationForm.control}
-                            name={`educationHistory.${index}.degree`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Degree</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    placeholder="e.g., Bachelor of Science"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={profileAndEducationForm.control}
-                            name={`educationHistory.${index}.fieldOfStudy`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Field of Study</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    placeholder="e.g., Computer Science"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={profileAndEducationForm.control}
-                            name={`educationHistory.${index}.startDate`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Start Date</FormLabel>
-                                <FormControl>
-                                  <Input type="date" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={profileAndEducationForm.control}
-                            name={`educationHistory.${index}.endDate`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>End Date (Optional)</FormLabel>
-                                <FormControl>
-                                  <Input type="date" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={profileAndEducationForm.control}
-                            name={`educationHistory.${index}.cgpa`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>CGPA (Optional)</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    placeholder="e.g., 3.85"
-                                    step="0.01"
-                                    {...field}
-                                    value={field.value ?? ''}
-                                    onChange={(e) => {
-                                      const value = e.target.value;
-                                      if (
-                                        value === '' ||
-                                        !isNaN(parseFloat(value))
-                                      ) {
-                                        field.onChange(value);
-                                      }
-                                    }}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={profileAndEducationForm.control}
-                            name={`educationHistory.${index}.gradingSystem`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Grading System (Optional)</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    placeholder="e.g., 4.0 Scale, Percentage"
-                                    {...field}
-                                    value={field.value ?? ''}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              control={profileAndEducationForm.control}
+                              name={`educationHistory.${index}.degree`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Degree</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="e.g., Bachelor of Science"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={profileAndEducationForm.control}
+                              name={`educationHistory.${index}.fieldOfStudy`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Field of Study</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="e.g., Computer Science"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              control={profileAndEducationForm.control}
+                              name={`educationHistory.${index}.startDate`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Start Date</FormLabel>
+                                  <FormControl>
+                                    <Input type="date" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={profileAndEducationForm.control}
+                              name={`educationHistory.${index}.endDate`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>End Date (Optional)</FormLabel>
+                                  <FormControl>
+                                    <Input type="date" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              control={profileAndEducationForm.control}
+                              name={`educationHistory.${index}.cgpa`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>CGPA (Optional)</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      placeholder="e.g., 3.85"
+                                      step="0.01"
+                                      {...field}
+                                      value={field.value ?? ''}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (
+                                          value === '' ||
+                                          !isNaN(parseFloat(value))
+                                        ) {
+                                          field.onChange(value);
+                                        }
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={profileAndEducationForm.control}
+                              name={`educationHistory.${index}.gradingSystem`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>
+                                    Grading System (Optional)
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="e.g., 4.0 Scale, Percentage"
+                                      {...field}
+                                      value={field.value ?? ''}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
                         </div>
                       </Card>
                     );
