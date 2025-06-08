@@ -58,6 +58,7 @@ export default async function ProfilePage() {
               fieldOfStudy: true,
               institution: true,
               startDate: true,
+              cgpa: true,
             },
             orderBy: { startDate: 'desc' },
           },
@@ -211,6 +212,11 @@ export default async function ProfilePage() {
                             ? format(education.endDate, ' MMM yyyy')
                             : ' Present'}
                         </div>
+                        {education.cgpa && (
+                          <div className="text-xs text-muted-foreground">
+                            CGPA: {education.cgpa.toFixed(2)}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
