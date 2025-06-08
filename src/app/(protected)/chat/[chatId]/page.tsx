@@ -5,7 +5,7 @@ import {
 } from '@/utils/chat-messages.util';
 import { checkIfChatExists } from '@/utils/chat.util';
 import { redirect } from 'next/navigation';
-import ChatPageClient from './ChatPageClient';
+import { ChatPageClient } from './ChatPageClient';
 
 interface ChatPageProps {
   params: Promise<{
