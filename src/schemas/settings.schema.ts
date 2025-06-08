@@ -22,6 +22,16 @@ export const educationInfoSchema = z
       invalid_type_error: 'Start date must be a valid date.',
     }),
     endDate: z.date().optional(),
+    cgpa: z
+      .number()
+      .gte(0, { message: 'CGPA must be 0 or greater.' })
+      .nullable()
+      .optional(),
+    gradingSystem: z
+      .string()
+      .max(50, { message: 'Grading system description is too long.' })
+      .nullable()
+      .optional(),
   })
   .refine(
     (data) => {
@@ -34,6 +44,21 @@ export const educationInfoSchema = z
     {
       message: 'End date must be after start date.',
       path: ['endDate'],
+    }
+  )
+  .refine(
+    (data) => {
+      const cgpaProvided = data.cgpa !== null && data.cgpa !== undefined;
+      const gradingSystemProvided =
+        data.gradingSystem !== null &&
+        data.gradingSystem !== undefined &&
+        data.gradingSystem.trim() !== '';
+      return cgpaProvided === gradingSystemProvided;
+    },
+    {
+      message:
+        'CGPA and Grading System must be provided together or not at all.',
+      path: ['cgpa'],
     }
   );
 export type EducationInfoInput = z.infer<typeof educationInfoSchema>;
