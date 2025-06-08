@@ -320,10 +320,10 @@ export default function ChatPageClient({
     id: chatId,
     sendExtraMessageFields: true,
     initialMessages: initialMessages,
-    experimental_prepareRequestBody(data) {
+    experimental_prepareRequestBody({ messages, id }) {
       return {
-        message: data.messages[data.messages.length - 1],
-        id: data.id,
+        message: messages[messages.length - 1],
+        id: id,
         ...(clientTimezone && { timezone: clientTimezone }),
       };
     },
