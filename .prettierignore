@@ -1,0 +1,4 @@
+node_modules
+src/generated
+
+src/lib/utils.ts

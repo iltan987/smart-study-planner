@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String @id @default(cuid())
+  name     String
+  email    String @unique
+  password String
+
+  Todo          Todo[]
+  CalendarEvent CalendarEvent[]
+  UserProfile   UserProfile?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum TodoPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TodoCategory {
+  STUDY
+  ASSIGNMENT
+  EXAM
+  WORK
+  GYM
+  OTHER
+}
+
+enum TodoStatus {
+  PENDING
+  COMPLETED
+  MISSED
+}
+
+model Todo {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  dueTime     DateTime? // For timed todos
+  date        DateTime?    @db.Date // For all-day todos
+  priority    TodoPriority @default(MEDIUM)
+  category    TodoCategory @default(STUDY)
+  duration    Int? // in minutes
+  status      TodoStatus   @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, date])
+  @@index([userId, dueTime])
+}
+
+model CalendarEvent {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title String
+  start DateTime
+  end   DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, start, end])
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+model UserProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  birthDate     DateTime?       @db.Date
+  gender        Gender?
+  nationality   String?
+  languages     String[]
+  EducationInfo EducationInfo[]
+}
+
+model EducationInfo {
+  id            String      @id @default(cuid())
+  userProfileId String
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  institution   String
+  degree        String
+  fieldOfStudy  String
+  startDate     DateTime  @db.Date
+  endDate       DateTime? @db.Date
+  cgpa          Float?
+  gradingSystem String?
+}

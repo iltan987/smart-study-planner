@@ -1,0 +1,15 @@
+{
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "reactSnippets.settings.importReactOnTop": false,
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+  "[prisma]": {
+    "editor.defaultFormatter": "Prisma.prisma"
+  },
+  "postman.settings.dotenv-detection-notification-visibility": false
+}
