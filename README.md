@@ -141,5 +141,5 @@ This project is distributed under the MIT License. See `LICENSE` for more inform
 ---
 
 <div align="center">
-  Made with ❤️ by <a href="https://www.github.com/iltan987">@iltan987</a>, <a href="https://www.github.com/nazhin1382">@nazhin1382</a>
+  Made with ❤️ by <a href="https://www.github.com/iltan987">@iltan987</a>, <a href="https://www.github.com/nazhin1382">@nazhin1382</a>, Umut Baran, Mert Can Çetin
 </div>
