@@ -99,7 +99,12 @@ const ChatMessageItem = memo(
               : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 self-start rounded-bl-none'
           )}
         >
-          <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+          <div
+            className={cn(
+              'prose prose-sm max-w-none break-words',
+              isUser ? 'prose-invert' : 'dark:prose-invert'
+            )}
+          >
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {textContent}
             </ReactMarkdown>
