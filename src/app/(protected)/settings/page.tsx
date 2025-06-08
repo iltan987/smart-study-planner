@@ -29,6 +29,8 @@ export default async function SettingsPage() {
               fieldOfStudy: true,
               institution: true,
               startDate: true,
+              cgpa: true,
+              gradingSystem: true,
             },
             orderBy: { startDate: 'desc' },
           },
