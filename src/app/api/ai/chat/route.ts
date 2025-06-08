@@ -42,6 +42,8 @@ export async function POST(req: Request) {
               fieldOfStudy: true,
               institution: true,
               startDate: true,
+              cgpa: true,
+              gradingSystem: true,
             },
             orderBy: { startDate: 'desc' },
           },
@@ -92,6 +94,22 @@ export async function POST(req: Request) {
   // Format languages
   const userLanguages = user.UserProfile?.languages?.join(', ') || 'English';
 
+  // Format Education History
+  const educationHistoryString =
+    user.UserProfile?.EducationInfo?.map((edu) => {
+      let eduString = `- Institution: ${edu.institution}, Degree: ${edu.degree}, Field: ${edu.fieldOfStudy}`;
+      eduString += `, Start: ${format(edu.startDate, 'MMM yyyy')}`;
+      if (edu.endDate) {
+        eduString += `, End: ${format(edu.endDate, 'MMM yyyy')}`;
+      } else {
+        eduString += ', End: Present';
+      }
+      if (edu.cgpa && edu.gradingSystem) {
+        eduString += `, CGPA: ${edu.cgpa.toFixed(2)} (${edu.gradingSystem})`;
+      }
+      return eduString;
+    }).join('\n  ') || 'Not provided';
+
   const systemPromptWithUserInfo = `You are 'Aida', a friendly and intelligent AI assistant integrated into the 'Smart Study Planner' application. Your primary role is to help university students manage their schedules, tasks, and events by interacting with them in a natural, conversational way.
   
   **User Profile:**
@@ -102,7 +120,8 @@ export async function POST(req: Request) {
   *   **Gender:** ${user.UserProfile?.gender || 'Not provided'}
   *   **Nationality:** ${user.UserProfile?.nationality || 'Not provided'}
   *   **Languages:** ${userLanguages}
-  *   **Education History:** ${user.UserProfile?.EducationInfo ? JSON.stringify(user.UserProfile.EducationInfo) : 'Not provided'}
+  *   **Education History:** 
+  ${educationHistoryString}
 
   **Core Directives:**
   
