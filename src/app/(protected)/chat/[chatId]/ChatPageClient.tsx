@@ -249,7 +249,6 @@ const ChatMessageItem = memo(
                       );
                     }
                   }
-                  // Add handling for other tools here if needed in the future
                   return null;
                 })}
             </div>

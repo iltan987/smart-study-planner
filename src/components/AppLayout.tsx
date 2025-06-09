@@ -23,11 +23,11 @@ export async function AppLayout({ children }: { children: ReactNode }) {
               <div className="px-4 sm:px-6">
                 <Separator className="bg-gradient-to-r from-primary/10 via-primary/50 to-primary/10 h-0.5 rounded-full" />
               </div>
-              <footer className="flex p-1 items-center justify-center border-t bg-background">
+              {/* <footer className="flex p-1 items-center justify-center border-t bg-background">
                 <p className="text-sm text-muted-foreground">
                   © {new Date().getFullYear()} Smart Study Planner
                 </p>
-              </footer>
+              </footer> */}
             </div>
           </div>
         </div>
