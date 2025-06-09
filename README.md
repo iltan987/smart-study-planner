@@ -88,7 +88,7 @@ REDIS_URL="your-vercel-redis-url"
 AUTH_SECRET="your-nextauth-secret"
 
 # Google AI (Gemini) API Key
-# Get from Google AI Studio: https://makersuite.google.com/
+# Get from Google AI Studio: https://aistudio.google.com/
 GOOGLE_GENERATIVE_AI_API_KEY="your-gemini-api-key"
 ```
 
