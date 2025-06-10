@@ -120,7 +120,7 @@ export default function RegisterPageContent() {
                     <FormLabel>Full Name</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Nazhin Abdolbaghi"
+                        placeholder="Your Name"
                         disabled={isSubmitting}
                         {...field}
                       />
