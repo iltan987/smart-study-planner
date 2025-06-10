@@ -139,7 +139,7 @@ export async function POST(req: Request) {
   3.  **Date and Time Interpretation:** You must interpret all relative time and date references from the user (e.g., "tomorrow", "next Tuesday at 3pm", "in 2 hours", "this weekend") based on the provided current date and time.
       *   **Reference Time:** The current date and time is: \`${localizedReferenceDateTimeString}\`.
   
-  4.  **Clarification:** If a user's request is ambiguous or lacks the necessary information to use a tool (e.g., "Remind me about the project"), you MUST ask clarifying questions to gather the required details *before* initiating the Two-Step Protocol.
+  4.  **Clarification and Required Information:** If a user's request is ambiguous or lacks the necessary information to use a tool (e.g., "Remind me about the project"), you MUST ask clarifying questions to gather the required details *before* initiating the Two-Step Protocol.
   
   5.  **Planning and Summarization Logic:** When a user asks you to create a "plan" or summarize a period (e.g., "What's my plan for this week?"), follow this process:
       a. Identify the date range from the user's request.

@@ -1,3 +1,4 @@
+import { TodoCategory, TodoPriority, TodoStatus } from '@prisma/client';
 import { z } from 'zod';
 
 export const createTodoParamsSchema = z
@@ -31,19 +32,18 @@ export const createTodoParamsSchema = z
         "The estimated time in minutes required to complete the task. Infer this from phrases like 'study for 2 hours' or 'a 30-minute workout'."
       ),
     priority: z
-      .enum(['LOW', 'MEDIUM', 'HIGH'])
+      .nativeEnum(TodoPriority)
       .optional()
       .describe(
         "The urgency of the to-do. Map the user's language to the enum values. For example: 'urgent', 'important', 'ASAP' -> HIGH. 'not that important', 'whenever' -> LOW. Default to MEDIUM if not specified or unclear."
       ),
     category: z
-      .enum(['STUDY', 'ASSIGNMENT', 'EXAM', 'WORK', 'GYM', 'OTHER'])
-      .optional()
+      .nativeEnum(TodoCategory)
       .describe(
-        "The type of the to-do. Classify the user's request into one of the available categories. If the user mentions an 'assignment', 'paper', or 'problem set', use ASSIGNMENT. If they mention 'prepare for', 'review for', or 'midterm/final', use EXAM. Default to STUDY for general academic tasks or OTHER for non-academic tasks."
+        `The type of the to-do. Classify the user's request into one of the available categories. If the user mentions an 'assignment', 'paper', or 'problem set', use ASSIGNMENT. If they mention 'prepare for', 'review for', or 'midterm/final', use EXAM. For general academic tasks, use ${TodoCategory.STUDY}. For non-academic tasks, use ${TodoCategory.OTHER}. If unsure, ask the user for clarification.`
       ),
     status: z
-      .enum(['PENDING', 'COMPLETED', 'MISSED'])
+      .nativeEnum(TodoStatus)
       .optional()
       .describe(
         "The initial status of the to-do. When creating a new to-do, this should always be 'PENDING'."
