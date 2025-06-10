@@ -57,7 +57,7 @@ export function TodaysCalendar() {
             Your calendar is clear for today!
           </p>
         )}
-        <Button asChild variant="outline" className="w-full mt-4">
+        <Button asChild className="w-full mt-4">
           <Link href="/calendar">
             <PlusCircle className="mr-2 h-4 w-4" /> Add or View Calendar
           </Link>
