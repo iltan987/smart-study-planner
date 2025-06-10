@@ -103,6 +103,8 @@ export async function updateUserProfileAndEducation(
           fieldOfStudy: eduItem.fieldOfStudy,
           startDate: eduItem.startDate,
           endDate: eduItem.endDate || null,
+          cgpa: eduItem.cgpa || null,
+          gradingSystem: eduItem.gradingSystem || null,
           userProfileId: userProfile.id,
         };
 

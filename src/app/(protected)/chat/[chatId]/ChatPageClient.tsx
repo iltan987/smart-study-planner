@@ -99,7 +99,12 @@ const ChatMessageItem = memo(
               : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 self-start rounded-bl-none'
           )}
         >
-          <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+          <div
+            className={cn(
+              'prose prose-sm max-w-none break-words',
+              isUser ? 'prose-invert' : 'dark:prose-invert'
+            )}
+          >
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {textContent}
             </ReactMarkdown>
@@ -291,7 +296,7 @@ const ChatMessageItem = memo(
 );
 ChatMessageItem.displayName = 'ChatMessageItem';
 
-export default function ChatPageClient({
+export function ChatPageClient({
   chatId,
   initialMessages,
   initialRatings,
@@ -319,10 +324,10 @@ export default function ChatPageClient({
     id: chatId,
     sendExtraMessageFields: true,
     initialMessages: initialMessages,
-    experimental_prepareRequestBody(data) {
+    experimental_prepareRequestBody({ messages, id }) {
       return {
-        message: data.messages[data.messages.length - 1],
-        id: data.id,
+        message: messages[messages.length - 1],
+        id: id,
         ...(clientTimezone && { timezone: clientTimezone }),
       };
     },

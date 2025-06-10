@@ -102,9 +102,11 @@ model EducationInfo {
   userProfileId String
   userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
 
-  institution  String
-  degree       String
-  fieldOfStudy String
-  startDate    DateTime  @db.Date
-  endDate      DateTime? @db.Date
+  institution   String
+  degree        String
+  fieldOfStudy  String
+  startDate     DateTime  @db.Date
+  endDate       DateTime? @db.Date
+  cgpa          Float?
+  gradingSystem String?
 }

@@ -2,7 +2,7 @@ import { Gender } from '@prisma/client';
 import { z } from 'zod';
 import { yearMonthDate } from './time.schema';
 
-export const educationInfoSchema = z
+const educationInfoSchema = z
   .object({
     id: z.string().cuid().optional(),
     institution: z
@@ -22,6 +22,16 @@ export const educationInfoSchema = z
       invalid_type_error: 'Start date must be a valid date.',
     }),
     endDate: z.date().optional(),
+    cgpa: z
+      .number()
+      .gte(0, { message: 'CGPA must be 0 or greater.' })
+      .nullable()
+      .optional(),
+    gradingSystem: z
+      .string()
+      .max(50, { message: 'Grading system description is too long.' })
+      .nullable()
+      .optional(),
   })
   .refine(
     (data) => {
@@ -35,8 +45,22 @@ export const educationInfoSchema = z
       message: 'End date must be after start date.',
       path: ['endDate'],
     }
+  )
+  .refine(
+    (data) => {
+      const cgpaProvided = data.cgpa !== null && data.cgpa !== undefined;
+      const gradingSystemProvided =
+        data.gradingSystem !== null &&
+        data.gradingSystem !== undefined &&
+        data.gradingSystem.trim() !== '';
+      return cgpaProvided === gradingSystemProvided;
+    },
+    {
+      message:
+        'CGPA and Grading System must be provided together or not at all.',
+      path: ['cgpa'],
+    }
   );
-export type EducationInfoInput = z.infer<typeof educationInfoSchema>;
 
 export const userProfileSchema = z.object({
   name: z
@@ -62,7 +86,7 @@ export const userProfileSchema = z.object({
 });
 export type UserProfileInput = z.infer<typeof userProfileSchema>;
 
-export const updateEducationInfoFormSchema = z
+const updateEducationInfoFormSchema = z
   .object({
     id: z.string().cuid().optional(),
     institution: z
@@ -82,6 +106,27 @@ export const updateEducationInfoFormSchema = z
       .string()
       .date('End date must be a valid date.')
       .or(z.literal('')),
+    cgpa: z
+      .string()
+      .optional()
+      .refine(
+        (val) => {
+          if (val === undefined || val === null || val.trim() === '') {
+            return true; // Allow empty, null, or undefined
+          }
+          const num = parseFloat(val);
+          // Check if it's a number and gte 0
+          return !isNaN(num) && num >= 0;
+        },
+        {
+          message:
+            'CGPA must be a positive number (e.g., 3.75 or 85.0), or empty.',
+        }
+      ),
+    gradingSystem: z
+      .string()
+      .max(50, { message: 'Grading system description is too long.' })
+      .optional(),
   })
   .refine(
     (data) => {
@@ -97,10 +142,20 @@ export const updateEducationInfoFormSchema = z
       message: 'End date must be after start date.',
       path: ['endDate'],
     }
+  )
+  .refine(
+    (data) => {
+      const cgpaProvided = data.cgpa !== undefined && data.cgpa.trim() !== '';
+      const gradingSystemProvided =
+        data.gradingSystem !== undefined && data.gradingSystem.trim() !== '';
+      return cgpaProvided === gradingSystemProvided;
+    },
+    {
+      message:
+        'CGPA and Grading System must be provided together or not at all.',
+      path: ['cgpa'],
+    }
   );
-export type UpdateEducationInfoFormInput = z.infer<
-  typeof updateEducationInfoFormSchema
->;
 
 export const updateUserProfileFormSchema = z.object({
   name: z
