@@ -120,7 +120,7 @@ export default function RegisterPageContent() {
                     <FormLabel>Full Name</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="John Doe"
+                        placeholder="Nazhin Abdolbaghi"
                         disabled={isSubmitting}
                         {...field}
                       />
@@ -208,7 +208,7 @@ export default function RegisterPageContent() {
         {/* Image Section */}
         <div className="relative hidden bg-muted md:block">
           <Image
-            src="/register page image.jpg"
+            src="/auth.png"
             alt="Register page image"
             className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
             fill

@@ -93,15 +93,15 @@ const ChatMessageItem = memo(
       >
         <div
           className={cn(
-            'group relative max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl p-3 rounded-xl shadow-md text-sm md:text-base',
+            'group relative min-w-[5%] max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl p-3 rounded-xl shadow-md text-sm md:text-base',
             isUser
-              ? 'bg-blue-600 text-white self-end rounded-br-none'
+              ? 'bg-blue-300 text-white self-end rounded-br-none'
               : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 self-start rounded-bl-none'
           )}
         >
           <div
             className={cn(
-              'prose prose-sm max-w-none break-words',
+              'prose prose-sm p-2 max-w-none break-words',
               isUser ? 'prose-invert' : 'dark:prose-invert'
             )}
           >

@@ -87,7 +87,7 @@ export function HeaderCard({ userName }: { userName: string }) {
   return (
     <Card className="shadow-sm">
       <CardHeader>
-        <CardTitle className="text-2xl md:text-3xl font-bold tracking-tight">
+        <CardTitle className="text-2xl text-blue-950 dark:text-blue-100 md:text-3xl font-bold tracking-tight">
           {greeting}, {firstName}! {selectedMessage}
         </CardTitle>
         <CardDescription className="text-md text-muted-foreground">

@@ -553,7 +553,7 @@ export default function TodosPage() {
               <Button
                 onClick={() => setIsAddTodoDialogOpen(true)}
                 size="sm"
-                className="flex-shrink-0"
+                className="flex-shrink-0 bg-purple-300"
                 disabled={isSubmittingDetailedTodo}
               >
                 <PlusCircle className="h-4 w-4 mr-2" /> Add New Task
