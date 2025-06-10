@@ -42,6 +42,8 @@ export async function POST(req: Request) {
               fieldOfStudy: true,
               institution: true,
               startDate: true,
+              cgpa: true,
+              gradingSystem: true,
             },
             orderBy: { startDate: 'desc' },
           },
@@ -54,13 +56,13 @@ export async function POST(req: Request) {
     return new Response('User not found', { status: 404 });
   }
 
-  const { id, message, timezone } = await req.json();
+  const { id: chatId, message, timezone } = await req.json();
 
-  if (!id || !message || !timezone) {
+  if (!chatId || !message || !timezone) {
     return new Response('Invalid request data', { status: 400 });
   }
 
-  if (typeof id !== 'string' || typeof timezone !== 'string') {
+  if (typeof chatId !== 'string' || typeof timezone !== 'string') {
     return new Response('Invalid request data types', { status: 400 });
   }
 
@@ -75,7 +77,7 @@ export async function POST(req: Request) {
     return new Response('Invalid message format', { status: 400 });
   }
 
-  const previousMessages = await getMessagesFromRedisChat(id);
+  const previousMessages = await getMessagesFromRedisChat(chatId);
 
   const messages = appendClientMessage({
     messages: previousMessages,
@@ -92,6 +94,22 @@ export async function POST(req: Request) {
   // Format languages
   const userLanguages = user.UserProfile?.languages?.join(', ') || 'English';
 
+  // Format Education History
+  const educationHistoryString =
+    user.UserProfile?.EducationInfo?.map((edu) => {
+      let eduString = `- Institution: ${edu.institution}, Degree: ${edu.degree}, Field: ${edu.fieldOfStudy}`;
+      eduString += `, Start: ${format(edu.startDate, 'MMM yyyy')}`;
+      if (edu.endDate) {
+        eduString += `, End: ${format(edu.endDate, 'MMM yyyy')}`;
+      } else {
+        eduString += ', End: Present';
+      }
+      if (edu.cgpa && edu.gradingSystem) {
+        eduString += `, CGPA: ${edu.cgpa.toFixed(2)} (${edu.gradingSystem})`;
+      }
+      return eduString;
+    }).join('\n  ') || 'Not provided';
+
   const systemPromptWithUserInfo = `You are 'Aida', a friendly and intelligent AI assistant integrated into the 'Smart Study Planner' application. Your primary role is to help university students manage their schedules, tasks, and events by interacting with them in a natural, conversational way.
   
   **User Profile:**
@@ -102,7 +120,8 @@ export async function POST(req: Request) {
   *   **Gender:** ${user.UserProfile?.gender || 'Not provided'}
   *   **Nationality:** ${user.UserProfile?.nationality || 'Not provided'}
   *   **Languages:** ${userLanguages}
-  *   **Education History:** ${user.UserProfile?.EducationInfo ? JSON.stringify(user.UserProfile.EducationInfo) : 'Not provided'}
+  *   **Education History:** 
+  ${educationHistoryString}
 
   **Core Directives:**
   
@@ -138,11 +157,20 @@ export async function POST(req: Request) {
     messages,
     maxSteps: 10,
     async onFinish({ response }) {
+      if (!response || !response.messages || response.messages.length === 0) {
+        return;
+      }
+      const firstMessageId = response.messages[0].id;
+      const lastMessageId = response.messages[response.messages.length - 1].id;
+
       appendResponseMessages({
         messages,
         responseMessages: response.messages,
       }).forEach((msg) => {
-        addMessageToRedisChat(id, msg);
+        addMessageToRedisChat(
+          chatId,
+          msg.id === firstMessageId ? { ...msg, id: lastMessageId } : msg
+        );
       });
     },
     maxTokens: 8192,

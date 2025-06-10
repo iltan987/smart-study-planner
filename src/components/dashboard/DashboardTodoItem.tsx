@@ -1,17 +1,26 @@
+import { Skeleton } from '@/components/ui/skeleton';
 import type { Todo } from '@prisma/client';
 import { format } from 'date-fns';
 import { CheckCircle, ListChecks, XCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export function DashboardTodoItem({
   todo,
 }: {
   todo: Pick<Todo, 'date' | 'description' | 'dueTime' | 'status' | 'title'>;
 }) {
-  const displayDate = todo.dueTime
-    ? format(todo.dueTime, 'p')
-    : todo.date
-      ? format(todo.date, 'MMM d')
-      : 'No due date';
+  const [clientDisplayDate, setClientDisplayDate] = useState<string | null>(
+    null
+  );
+
+  useEffect(() => {
+    const calculatedDisplayDate = todo.dueTime
+      ? format(todo.dueTime, 'p')
+      : todo.date
+        ? format(todo.date, 'MMM d')
+        : 'No due date';
+    setClientDisplayDate(calculatedDisplayDate);
+  }, [todo.dueTime, todo.date]);
 
   const isCompleted = todo.status === 'COMPLETED';
   const isMissed = todo.status === 'MISSED';
@@ -58,7 +67,11 @@ export function DashboardTodoItem({
           isCompleted ? 'line-through' : isMissed ? 'text-red-500' : ''
         }`}
       >
-        {displayDate}
+        {clientDisplayDate === null ? (
+          <Skeleton className="h-4 w-[60px]" />
+        ) : (
+          clientDisplayDate
+        )}
       </div>
     </div>
   );
