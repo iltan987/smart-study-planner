@@ -297,7 +297,7 @@ const ChatMessageItem = memo(
 );
 ChatMessageItem.displayName = 'ChatMessageItem';
 
-export default function ChatPageClient({
+export function ChatPageClient({
   chatId,
   initialMessages,
   initialRatings,
