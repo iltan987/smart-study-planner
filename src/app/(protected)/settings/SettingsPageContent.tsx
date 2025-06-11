@@ -281,7 +281,7 @@ export default function SettingsPageContent({
   };
 
   return (
-    <div className="container mx-auto py-8 max-w-4xl md:py-6">
+    <div className="container px-3 mx-auto py-8 max-w-4xl md:py-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <Avatar className="h-16 w-16 rounded-lg">
@@ -308,7 +308,7 @@ export default function SettingsPageContent({
             onSubmitProfileAndEducation
           )}
         >
-          <Tabs defaultValue="profile" className="space-y-6">
+          <Tabs defaultValue="profile" className="space-y-6 px-3">
             <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 h-auto sm:h-10">
               <TabsTrigger value="profile">Profile Details</TabsTrigger>
               <TabsTrigger value="education">Education History</TabsTrigger>

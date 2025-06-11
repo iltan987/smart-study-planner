@@ -23,6 +23,7 @@ function SidebarMenuItemComponent({ item }: { item: NavigationItem }) {
         tooltip={item.title}
         asChild
         isActive={isActive(item.href)}
+        className="h-10 text-md  gap-y-4"
       >
         <Link href={item.href}>
           <item.icon />

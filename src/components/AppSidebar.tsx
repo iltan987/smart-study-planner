@@ -47,7 +47,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
             <Collapsible className="group/collapsible" asChild>
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton>
+                  <SidebarMenuButton className=" text-md  gap-y-4">
                     <navChatbot.icon />
                     <span>{navChatbot.title}</span>
                     <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />

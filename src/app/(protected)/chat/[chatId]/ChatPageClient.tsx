@@ -93,16 +93,16 @@ const ChatMessageItem = memo(
       >
         <div
           className={cn(
-            'group relative max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl p-3 rounded-xl shadow-md text-sm md:text-base',
+            'group relative min-w-[5%] max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl p-3 rounded-xl shadow-md text-sm md:text-base',
             isUser
-              ? 'bg-blue-600 text-white self-end rounded-br-none'
+              ? 'bg-blue-100 text-blue-950 self-end rounded-br-none'
               : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 self-start rounded-bl-none'
           )}
         >
           <div
             className={cn(
-              'prose prose-sm max-w-none break-words',
-              isUser ? 'prose-invert' : 'dark:prose-invert'
+              'prose prose-sm p-2 max-w-none break-words',
+              isUser ? 'prose-blue [&>*]:!text-blue-900' : 'dark:prose-invert'
             )}
           >
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -254,7 +254,6 @@ const ChatMessageItem = memo(
                       );
                     }
                   }
-                  // Add handling for other tools here if needed in the future
                   return null;
                 })}
             </div>

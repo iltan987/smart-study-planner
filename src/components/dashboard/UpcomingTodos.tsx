@@ -58,7 +58,7 @@ export function UpcomingTodos() {
             No upcoming todos for today or tomorrow. Way to go!
           </p>
         )}
-        <Button asChild variant="outline" className="w-full mt-4">
+        <Button asChild className="w-full mt-4">
           <Link href="/todos">
             <PlusCircle className="mr-2 h-4 w-4" /> Add or View All Todos
           </Link>

@@ -157,7 +157,7 @@ export default function LoginPageContent() {
         </div>
         <div className="relative hidden bg-muted md:block">
           <Image
-            src="/login page image.png"
+            src="/auth.png"
             alt="Login page image"
             className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
             fill

@@ -163,7 +163,11 @@ export function NavUser() {
             <DropdownMenuGroup>
               {navUserNavItems.map((item) => {
                 return (
-                  <DropdownMenuItem key={item.title} asChild>
+                  <DropdownMenuItem
+                    key={item.title}
+                    asChild
+                    className="gap-y-3"
+                  >
                     <Link href={item.href}>
                       <item.icon className="mr-2 h-4 w-4" />
                       <span>{item.title}</span>
