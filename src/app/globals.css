@@ -126,7 +126,6 @@
   }
   body {
     @apply bg-background text-foreground;
-    /* Optional: Add a subtle gradient background for extra visual appeal */
     background: linear-gradient(
       135deg,
       oklch(var(--background)) 0%,
